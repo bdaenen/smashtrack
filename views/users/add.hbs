@@ -1,0 +1,50 @@
+<h1>{{title}}</h1>
+
+{{#if formConfig}}
+    <div class="row">
+        <div class="col">
+            {{#if errors}}
+                <div class="alert alert-danger" role="alert">
+                    <ul class="list-unstyled">
+                        {{#each errors}}
+                            <li>
+                                {{#with (lookup ../formConfig this.param) as |formObj|}}
+                                    {{formObj.label}}:
+                                {{/with}}
+                                {{this.msg}}
+                            </li>
+                        {{/each}}
+                    </ul>
+                </div>
+            {{/if}}
+            <form action="" method="post">
+                {{#each formConfig}}
+                    <div class="form-group">
+                        <label for="{{@key}}">{{this.label}}{{#if this.required}}*{{/if}}</label>
+                        <input class="form-control" type="{{this.type}}" {{#if this.required}}required{{/if}} id="{{@key}}" name="{{@key}}" value="{{this.value}}"/>
+                    </div>
+                {{/each}}
+                <input class="btn btn-primary" type="submit" value="Submit"/>
+            </form>
+        </div>
+        <div class="col">
+
+        </div>
+    </div>
+{{/if}}
+
+<script type="text/javascript">
+    var password = document.getElementById("password")
+            , confirm_password = document.getElementById("password_confirmation");
+
+    function validatePassword(){
+        if(password.value != confirm_password.value) {
+            confirm_password.setCustomValidity("Passwords don't match");
+        } else {
+            confirm_password.setCustomValidity('');
+        }
+    }
+
+    password.oninput = validatePassword;
+    confirm_password.oninput = validatePassword;
+</script>
