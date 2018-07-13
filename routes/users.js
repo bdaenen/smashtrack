@@ -1,7 +1,8 @@
 var express = require('express');
 var router = express.Router();
 var clone = require('lodash/cloneDeep');
-const dbPool = require('../db');
+let dam = require('../db/dataAccessManager');
+const dbPool = require('../db/db');
 const userAddFormConfig = {
   'username': {
     type: 'text',
@@ -25,19 +26,18 @@ const userAddFormConfig = {
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-  dbPool.query('SELECT * FROM user', function(err, results){
-    res.render('users/list', { title: 'User list', users: results });
-  });
+  let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
+  let page = Math.abs(parseInt(req.query.page, 10) || 1);
+    res.json(dam.users.order('id').page(pageSize, page));
 });
 
-router.get('/add', function(req, res, next) {
-  res.render('users/add', { title: 'Add a user', formConfig: userAddFormConfig });
+router.get('/:userId', function(req, res, next) {
+  res.json(dam.users.filter({id: parseInt(req.params.userId, 10)}));
 });
 
 router.post('/add', function(req, res, next) {
   let data = req.body;
   let errors = validatePostData(userAddFormConfig, data);
-
 
   if (!errors.length) {
     let bcrypt = require('bcrypt');
@@ -49,30 +49,13 @@ router.post('/add', function(req, res, next) {
       dbPool.query('INSERT INTO user(tag, password) VALUES (?, ?)', [data.username, hash], function (error, results, fields) {
         if (error) throw error;
       });
-      res.render('basic', { title: 'User successfully added!'});
+      res.json({success: true});
     });
   }
   else {
-    let userAddFormConfigModified = fillFormConfigWithData(userAddFormConfig, data);
-    res.render('users/add', { title: 'Add a user', formConfig: userAddFormConfigModified, errors: errors })
+    res.json({success: false, errors: errors});
   }
 });
-
-/**
- * @param formConfig
- * @param data
- * @returns {*}
- */
-function fillFormConfigWithData(formConfig, data) {
-  let newObj = clone(formConfig);
-  Object.keys(data).forEach(function(key) {
-    if (newObj[key]) {
-      newObj[key].value = data[key];
-    }
-  });
-
-  return newObj;
-}
 
 /**
  * @param formConfig
@@ -85,6 +68,12 @@ function validatePostData(formConfig, data) {
   Object.keys(userAddFormConfig).forEach(function(key){
     if (userAddFormConfig[key].required && !data[key]) {
       errors.push({'param': key, msg: 'required'});
+    }
+    if (key.endsWith('_confirmation')) {
+      let matchingKey = key.substr(0, key.lastIndexOf('_confirmation'));
+      if (data[key] !== data[matchingKey]) {
+        errors.push({param: key, param2: matchingKey, msg: 'parameters should match.'});
+      }
     }
   });
 

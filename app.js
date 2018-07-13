@@ -3,10 +3,12 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+//var flash = require('req-flash');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var loginRouter = require('./routes/login');
+var matchesRouter = require('./routes/matches');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var session = require("express-session");
@@ -24,21 +26,32 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-app.use(session({ secret: "munK84xMJp6pe693kTJcbKqB", resave: false, saveUninitialized: false }));
+app.use(session({
+  secret: "munK84xMJp6pe693kTJcbKqB",
+  resave: true,
+  saveUninitialized: false,
+  cookie : {
+    maxAge: 60*60*48
+  }
+}));
+//app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(function(req, res, next) {
-  if (req.url === '/login' || req.isAuthenticated()) {
-    next();
-  }
-  else {
-    res.redirect('/login');
-  }
-});
+
+if (process.argv.indexOf('dev=1') === -1) {
+  app.use(function(req, res, next) {
+    if (req.url === '/login' || req.isAuthenticated()) {
+      next();
+    }
+    else {
+      res.redirect('/login');
+    }
+  });
+}
 
 passport.use(new LocalStrategy(
   function(username, password, done) {
-    let dbPool = require('./db');
+    let dbPool = require('./db/db');
     let bcrypt = require('bcrypt');
     dbPool.query('SELECT * FROM user WHERE tag = ?', [username], function(error, results, fields) {
       let user = results[0];
@@ -64,7 +77,7 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(id, done) {
-  require('./db').query('SELECT * FROM user WHERE id = ?', [id], function(error, results, fields){
+  require('./db/db').query('SELECT * FROM user WHERE id = ?', [id], function(error, results, fields){
     done(error, results[0]);
   });
 });
@@ -72,9 +85,9 @@ passport.deserializeUser(function(id, done) {
 // Moving this to the login router breaks stuff...?
 app.post('/login',
   passport.authenticate('local', {
-    successRedirect: '/',
-    failureRedirect: '/login',
-    failureFlash: true
+    successRedirect: '/login/ok',
+    failureRedirect: '/login/error',
+    failureFlash: false
   })
 );
 
@@ -82,6 +95,7 @@ app.post('/login',
 app.use('/', indexRouter);
 app.use('/login', loginRouter);
 app.use('/users', usersRouter);
+app.use('/matches', matchesRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

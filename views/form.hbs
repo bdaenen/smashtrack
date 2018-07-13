@@ -1,0 +1,51 @@
+<form action="" method="post">
+    {{#each formConfig}}
+        {{#if this.namespace}}
+            <fieldset class="form-group">
+                <legend>{{this.label}}</legend>
+                {{#each this}}
+                    {{#if this.tag}}
+                        <div class="form-group">
+                        {{#if this.label}}
+                            <label for="{{@key}}">{{this.label}}{{#if this.required}}*{{/if}}</label>
+                        {{/if}}
+                        <{{this.tag}}
+                        class="form-control {{this.classes}}"
+                        name="{{#if this.name}}{{this.name}}{{else}}{{@key}}{{/if}}"
+                        {{#if this.type}}type="{{this.type}}"{{/if}}
+                        {{#if this.required}}required{{/if}}
+                        id="{{@key}}"
+                        value="{{this.value}}"
+                        {{#if this.extra}}
+                            {{#each this.extra}}
+                                {{@key}}="{{this}}"
+                            {{/each}}
+                        {{/if}}
+                        >
+                        {{#if this.data}}
+                            {{#each this.data}}
+                                <option value="{{this.value}}">{{this.label}}</option>
+                            {{/each}}
+                        {{/if}}
+                        </{{this.tag}}>
+                        </div>
+                    {{/if}}
+                {{/each}}
+            </fieldset>
+        {{else}}
+            <div class="form-group">
+                {{#if this.label}}
+                    <label for="{{@key}}">{{this.label}}{{#if this.required}}*{{/if}}</label>
+                {{/if}}
+                <{{this.tag}}
+                class="form-control {{this.classes}}"
+                name="{{#if this.name}}{{this.name}}{{else}}{{@key}}{{/if}}"
+                {{#if this.type}}type="{{this.type}}"{{/if}}
+                {{#if this.required}}required{{/if}}
+                id="{{@key}}"
+                value="{{this.value}}">
+            </div>
+        {{/if}}
+    {{/each}}
+    <input class="btn btn-primary" type="submit" value="Submit"/>
+</form>
