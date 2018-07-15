@@ -78,11 +78,58 @@ let dataAccessManager = Object.create({
    */
   loadMatches: function(callback){
     this._runningQueryCount++;
-    dbPool.query('SELECT id, tag FROM `match`', function(error, results){
-      this._runningQueryCount--;
-      this.matches = mapDbToDam(results);
-      callback && callback(this.matches);
-      this.emitter.emit('refresh.matches', this.matches);
+    dbPool.query({nestTables: true, sql: 'SELECT * FROM player' +
+      ' INNER JOIN `match` ON player.match_id = `match`.id' +
+      ' INNER JOIN `stage` ON `match`.stage_id = stage.id' +
+      ' INNER JOIN `user` as author ON `match`.author_user_id = author.id' +
+      ' INNER JOIN `user` ON player.user_id = user.id' +
+      ' INNER JOIN `character` ON player.character_id = character.id' +
+      ' LEFT JOIN `team` ON player.team_id = team.id' +
+      ' LEFT JOIN `player_data` ON `player_data`.player_id = player.id'
+      },
+      function(error, results){
+        this._runningQueryCount--;
+        let structuredData = {};
+        let finalArray = [];
+
+        results.forEach(function(result){
+          let datarow = structuredData[result.match.id] = structuredData[result.match.id] || {
+            match: {
+              id: result.match.id,
+              is_team: result.match.is_team,
+              date: result.match.date,
+              stocks: result.match.stocks,
+              time: result.match.match_time,
+              time_remaining: result.match.time_remaining,
+              stage: result.stage,
+              author_user: {id: result.author.id, tag: result.author.tag}
+            },
+            players: {},
+          };
+
+          datarow.players[result.player.id] = datarow.players[result.player.id] || {
+            id: result.player.id,
+            user: {id: result.user.id, tag: result.user.tag},
+            character: result.character,
+            team: result.team,
+            is_winner: result.player.is_winner,
+            data: {}
+          };
+
+          if (result.player_data && result.player_data.id) {
+            datarow.players[result.player.id].data[result.player_data.key] = result.player_data.value;
+          }
+        });
+
+        Object.keys(structuredData).forEach(function(key) {
+          structuredData[key].players = Object.values(structuredData[key].players);
+          finalArray.push(structuredData[key]);
+        });
+
+        this.matches = mapDbToDam(finalArray);
+        //this.matches = this.structureMa(results);
+        callback && callback(this.matches);
+        //this.emitter.emit('refresh.matches', this.matches);
     }.bind(this));
   },
 
@@ -106,12 +153,12 @@ let dataAccessManager = Object.create({
           let stop = false;
           let usersSaving = 0;
           let userDataSaving = 0;
-          data.users.forEach(function(user){
+          data.players.forEach(function(player){
             if (stop) {return;}
-            user.match_id = match.id;
+            player.match_id = match.id;
             usersSaving++;
-            // Save the match_user record
-            saveMatchUser(user, function(err, user){
+            // Save the player record
+            savePlayer(player, function(err, user){
               usersSaving--;
               if (!usersSaving && !userDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
               if (err.length || !user.id) {
@@ -122,7 +169,7 @@ let dataAccessManager = Object.create({
                 if (user.data) {
                   user.data.forEach(function(data){
                     if (stop) {return;}
-                    data.match_user_id = user.id;
+                    data.player_id = user.id;
                     userDataSaving++;
 
                     saveMatchUserData(data, function(err, userData){
@@ -210,9 +257,9 @@ function saveMatch(data, callback) {
  * @param data
  * @param callback
  */
-function saveMatchUser(data, callback) {
+function savePlayer(data, callback) {
   dbPool.query(
-    'INSERT INTO `match_user` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO `player` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
     [
       data.match_id,
       data.user_id,
@@ -235,9 +282,9 @@ function saveMatchUser(data, callback) {
  */
 function saveMatchUserData(data, callback) {
   dbPool.query(
-    'INSERT INTO `match_user_data` (match_user_id, `key`, value) VALUES (?, ?, ?)',
+    'INSERT INTO `player_data` (player_id, `key`, value) VALUES (?, ?, ?)',
     [
-      data.match_user_id,
+      data.player_id,
       data.key,
       data.value
     ],
@@ -298,12 +345,13 @@ function validateUserData(data, callback) {
 }
 
 /**
+ * TODO: validate based on addMatch structure
  * @param data
  * @param callback
  * @returns {*}
  */
 function validateMatchData(data, callback){
-  let requiredFields = ['match', 'users'];
+  let requiredFields = ['match', 'players'];
   let requiredMatchFields = [
     'stocks',
     'stage_id',
@@ -327,7 +375,7 @@ function validateMatchData(data, callback){
     return callback({errors: [{msg: 'Missing match data', param: missingMatchData}]}, false);
   }
   missingUserData = [];
-  data.users.forEach(function(user) {
+  data.players.forEach(function(user) {
     let missing = _.difference(requiredUserFields, Object.keys(user));
     if (missing.length) {
       missingUserData.push(missing);

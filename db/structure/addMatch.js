@@ -8,10 +8,11 @@ module.exports = {
       stocks: {type: 'int', required: true},
       time: {type: 'string', format: 'hh:mm:ss', required: true},
       time_remaining: {type: 'string', format:'hh:mm:ss', required: true},
-      stage_id: {type: 'int', required: true}
+      stage_id: {type: 'int', required: true},
+      author_user_id: {type: 'int', required: true}
     }
   },
-  users: {
+  players: {
     required: true,
     type: 'array',
     format: [{
