@@ -1,19 +1,24 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-//var flash = require('req-flash');
+let createError = require('http-errors');
+let express = require('express');
+let path = require('path');
+let cookieParser = require('cookie-parser');
+let logger = require('morgan');
+//let flash = require('req-flash');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
-var loginRouter = require('./routes/login');
-var matchesRouter = require('./routes/matches');
-var passport = require('passport');
-var LocalStrategy = require('passport-local').Strategy;
-var session = require("express-session");
+let indexRouter = require('./routes/index');
+let usersRouter = require('./routes/users');
+let loginRouter = require('./routes/login');
+let matchesRouter = require('./routes/matches');
+let charactersRouter = require('./routes/characters');
+let stagesRouter = require('./routes/stages');
+let teamsRouter = require('./routes/teams');
 
-var app = express();
+
+let passport = require('passport');
+let LocalStrategy = require('passport-local').Strategy;
+let session = require("express-session");
+
+let app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -49,7 +54,9 @@ if (process.argv.indexOf('dev=1') === -1) {
   });
 }
 
-passport.use(new LocalStrategy(
+passport.use(new LocalStrategy({
+    usernameField: 'tag',
+  },
   function(username, password, done) {
     let dbPool = require('./db/db');
     let bcrypt = require('bcrypt');
@@ -91,11 +98,13 @@ app.post('/login',
   })
 );
 
-
 app.use('/', indexRouter);
 app.use('/login', loginRouter);
 app.use('/users', usersRouter);
 app.use('/matches', matchesRouter);
+app.use('/characters', charactersRouter);
+app.use('/stages', stagesRouter);
+app.use('/teams', teamsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

@@ -1,91 +1,345 @@
 const dbPool = require('./db');
 const Emitter = require('events');
 const DbSet = require('./DbSet');
+const _ = require('lodash');
+let changedDatasets = new Set();
+let dataRefreshRate = 10 * 1000;
 
-let dataAccessManager = {
-  users: null,
-  stages: null,
-  characters: null,
-  teams: null,
-  _runningQueryCount: 0,
-  isReady: function(){
-    return this._runningQueryCount === 0;
+/**
+ * Object to be used to access the database.
+ * @type {{users: null|DbSet, stages: null|DbSet, characters: null|DbSet, teams: null|DbSet, _runningQueryCount: number, isReady: dataAccessManager.isReady, emitter: *}}
+ */
+let dataAccessManager = Object.create({
+  /**
+   * @param callback
+   */
+  loadData: function(callback) {
+    this.loadStages(callback);
+    this.loadCharacters(callback);
+    this.loadUsers(callback);
+    this.loadMatches(callback);
+    this.loadTeams(callback);
   },
-  emitter: new Emitter()
-};
 
-dataAccessManager.loadData = function(callback) {
-  this.loadStages(callback);
-  this.loadCharacters(callback);
-  this.loadUsers(callback);
-  this.loadMatches(callback);
-  this.loadTeams(callback);
+  /**
+   * @param callback
+   */
+  loadStages: function(callback){
+    this._runningQueryCount++;
+    dbPool.query('SELECT id, name FROM stage', function(error, results){
+      this._runningQueryCount--;
+      this.stages = mapDbToDam(results);
+      callback && callback(this.stages);
+      this.emitter.emit('refresh.stages', this.stages);
+    }.bind(this));
+  },
+
+  /**
+   * @param callback
+   */
+  loadCharacters: function(callback){
+    this._runningQueryCount++;
+    dbPool.query('SELECT id, name FROM `character`', function(error, results){
+      this._runningQueryCount--;
+      this.characters = mapDbToDam(results);
+      callback && callback(this.characters);
+      this.emitter.emit('refresh.characters', this.characters);
+    }.bind(this));
+  },
+
+  /**
+   * @param callback
+   */
+  loadTeams: function(callback){
+    this._runningQueryCount++;
+    dbPool.query('SELECT id, name FROM `team`', function(error, results){
+      this._runningQueryCount--;
+      this.teams = mapDbToDam(results);
+      callback && callback(this.teams);
+      this.emitter.emit('refresh.teams', this.teams);
+    }.bind(this));
+  },
+
+  /**
+   * @param callback
+   */
+  loadUsers: function(callback){
+    this._runningQueryCount++;
+    dbPool.query('SELECT id, tag FROM `user`', function(error, results){
+      this._runningQueryCount--;
+      this.users = mapDbToDam(results);
+      callback && callback(this.users);
+      this.emitter.emit('refresh.users', this.users);
+    }.bind(this));
+  },
+
+  /**
+   * @param callback
+   */
+  loadMatches: function(callback){
+    this._runningQueryCount++;
+    dbPool.query('SELECT id, tag FROM `match`', function(error, results){
+      this._runningQueryCount--;
+      this.matches = mapDbToDam(results);
+      callback && callback(this.matches);
+      this.emitter.emit('refresh.matches', this.matches);
+    }.bind(this));
+  },
+
+  /**
+   * @param data
+   * @param callback
+   */
+  createMatch: function(data, callback){
+    // This is horrible.
+    let callbackCalled = false;
+    validateMatchData(data, function(err, success) {
+      if (err.length || !success) {
+        return callback(err, success);
+      }
+      // Save the match record
+      saveMatch(data.match, function(err, match){
+        if (err.length || !match.id) {
+          callback(err, false);
+        }
+        else {
+          let stop = false;
+          let usersSaving = 0;
+          let userDataSaving = 0;
+          data.users.forEach(function(user){
+            if (stop) {return;}
+            user.match_id = match.id;
+            usersSaving++;
+            // Save the match_user record
+            saveMatchUser(user, function(err, user){
+              usersSaving--;
+              if (!usersSaving && !userDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
+              if (err.length || !user.id) {
+                stop = true;
+                callback(err, false);
+              }
+              else {
+                if (user.data) {
+                  user.data.forEach(function(data){
+                    if (stop) {return;}
+                    data.match_user_id = user.id;
+                    userDataSaving++;
+
+                    saveMatchUserData(data, function(err, userData){
+                      userDataSaving--;
+                      //if (!usersSaving && !userDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
+                      if (err.length || !userData.id) {
+                        stop = true;
+                        callback(err, false);
+                      }
+                    }.bind(this))
+                  }, this);
+                }
+              }
+            }.bind(this));
+          }, this);
+        }
+      }.bind(this));
+
+      callback(err, true);
+    }.bind(this));
+  },
+
+  /**
+   * @param data
+   * @param callback
+   */
+  createUser: function(data, callback) {
+    validateUserData(data, function(err, success) {
+      if (err.length || !success) {
+        callback(err, false);
+      }
+
+      let bcrypt = require('bcrypt');
+      bcrypt.hash(data.password, 12, function(error, hash) {
+        if (error) {
+          throw error;
+        }
+
+        dbPool.query('INSERT INTO user(tag, password) VALUES (?, ?)', [data.tag, hash], function (error, results, fields) {
+          if (error) throw error;
+        });
+        callback(err, true);
+        changedDatasets.add('users');
+      });
+    });
+  }
+});
+
+dataAccessManager.users = null;
+dataAccessManager.stages= null;
+dataAccessManager.characters= null;
+dataAccessManager.teams= null;
+dataAccessManager._runningQueryCount= 0;
+dataAccessManager.isReady= function(){
+  return this._runningQueryCount === 0;
 };
+dataAccessManager.emitter= new Emitter();
 
 /**
+ * @param data
  * @param callback
  */
-dataAccessManager.loadStages = function(callback) {
-  dataAccessManager._runningQueryCount++;
-  dbPool.query('SELECT id, name FROM stage', function(error, results){
-    dataAccessManager._runningQueryCount--;
-    dataAccessManager.stages = mapDbToDam(results);
-    callback && callback(dataAccessManager.stages);
-    dataAccessManager.emitter.emit('refresh.stages', dataAccessManager.stages);
-  });
-};
+function saveMatch(data, callback) {
+  dbPool.query(
+    'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [
+      data.date || null,
+      data.stocks,
+      data.stage_id,
+      data.time || null,
+      data.time_remaining || null,
+      +!!data.is_team,
+      data.author_user_id
+    ],
+    function(sqlerr, results, fields){
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data);
+      changedDatasets.add('matches');
+    }
+  );
+}
 
 /**
+ * @param data
  * @param callback
  */
-dataAccessManager.loadCharacters = function(callback) {
-  dataAccessManager._runningQueryCount++;
-  dbPool.query('SELECT id, name FROM `character`', function(error, results){
-    dataAccessManager._runningQueryCount--;
-    dataAccessManager.characters = mapDbToDam(results);
-    callback && callback(dataAccessManager.characters);
-    dataAccessManager.emitter.emit('refresh.characters', dataAccessManager.characters);
-  });
-};
+function saveMatchUser(data, callback) {
+  dbPool.query(
+    'INSERT INTO `match_user` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
+    [
+      data.match_id,
+      data.user_id,
+      data.character_id,
+      data.team_id || null,
+      +!!data.is_winner
+    ],
+    function(sqlerr, results, fields) {
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data, data);
+      changedDatasets.add('matches');
+    }
+  );
+}
 
 /**
+ * @param data
  * @param callback
  */
-dataAccessManager.loadTeams = function(callback) {
-  dataAccessManager._runningQueryCount++;
-  dbPool.query('SELECT id, name FROM `team`', function(error, results){
-    dataAccessManager._runningQueryCount--;
-    dataAccessManager.teams = mapDbToDam(results);
-    callback && callback(dataAccessManager.teams);
-    dataAccessManager.emitter.emit('refresh.teams', dataAccessManager.teams);
-  });
-};
+function saveMatchUserData(data, callback) {
+  dbPool.query(
+    'INSERT INTO `match_user_data` (match_user_id, `key`, value) VALUES (?, ?, ?)',
+    [
+      data.match_user_id,
+      data.key,
+      data.value
+    ],
+    function(sqlerr, results, fields) {
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data);
+      changedDatasets.add('matches');
+    }
+  );
+}
 
 /**
- * @param callback
+ * Reload changed data
  */
-dataAccessManager.loadUsers = function(callback) {
-  dataAccessManager._runningQueryCount++;
-  dbPool.query('SELECT id, tag FROM `user`', function(error, results){
-    dataAccessManager._runningQueryCount--;
-    dataAccessManager.users = mapDbToDam(results);
-    callback && callback(dataAccessManager.users);
-    dataAccessManager.emitter.emit('refresh.users', dataAccessManager.users);
-  });
-};
+function checkData() {
+  if (changedDatasets.size) {
+    changedDatasets.forEach(function(value){
+      let funcName = 'load' + value[0].toUpperCase() + value.slice(1);
+      dataAccessManager[funcName]();
+    });
+    changedDatasets.clear();
+  }
+}
 
 /**
+ * @param data
  * @param callback
+ * @returns {*}
  */
-dataAccessManager.loadMatches = function(callback) {
-  dataAccessManager._runningQueryCount++;
-  dbPool.query('SELECT id, tag FROM `match`', function(error, results){
-    dataAccessManager._runningQueryCount--;
-    dataAccessManager.matches = mapDbToDam(results);
-    callback && callback(dataAccessManager.matches);
-    dataAccessManager.emitter.emit('refresh.matches', dataAccessManager.matches);
+function validateUserData(data, callback) {
+  let errors = [];
+  let requiredFields = [
+    'tag',
+    'password',
+    'password_confirmation'
+  ];
+
+  let missingData =_.difference(requiredFields, Object.keys(data));
+  if (missingData.length) {
+    errors.push([{msg: 'Missing data', param: missingData}]);
+  }
+
+  Object.keys(data).forEach(function(key){
+    if (key.endsWith('_confirmation')) {
+      let matchingKey = key.substr(0, key.lastIndexOf('_confirmation'));
+      if (data[key] !== data[matchingKey]) {
+        errors.push({param: key, param2: matchingKey, msg: 'parameters should match.'});
+      }
+    }
   });
-};
+
+  if (errors.length) {
+    return callback(errors, false);
+  }
+
+  return callback(errors, true);
+}
+
+/**
+ * @param data
+ * @param callback
+ * @returns {*}
+ */
+function validateMatchData(data, callback){
+  let requiredFields = ['match', 'users'];
+  let requiredMatchFields = [
+    'stocks',
+    'stage_id',
+    'author_user_id'
+  ];
+  let requiredUserFields = [
+    'user_id',
+    'character_id',
+    'is_winner'
+  ];
+  let missingData;
+  let missingMatchData;
+  let missingUserData;
+
+  missingData =_.difference(requiredFields, Object.keys(data));
+  if (missingData.length) {
+    return callback({errors: [{msg: 'Missing data', param: missingData}]}, false)
+  }
+  missingMatchData = _.difference(requiredMatchFields, Object.keys(data.match));
+  if (missingMatchData.length) {
+    return callback({errors: [{msg: 'Missing match data', param: missingMatchData}]}, false);
+  }
+  missingUserData = [];
+  data.users.forEach(function(user) {
+    let missing = _.difference(requiredUserFields, Object.keys(user));
+    if (missing.length) {
+      missingUserData.push(missing);
+    }
+  });
+
+  if (missingMatchData.length) {
+    return callback({errors: [{msg: 'Missing user data', param: missingUserData}]}, false);
+  }
+
+  return callback([], true);
+}
 
 /**
  * @param results
@@ -96,5 +350,7 @@ function mapDbToDam(results) {
 }
 
 dataAccessManager.loadData();
+
+setInterval(checkData, dataRefreshRate);
 
 module.exports = dataAccessManager;

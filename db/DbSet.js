@@ -1,5 +1,7 @@
-let DbSet = function(results) {
-  this.dataset = results;
+let DbSet = function(results, total) {
+  this.dataset = results || [];
+  this.count = this.dataset.length;
+  this.total = total || this.dataset.length;
 };
 
 const _ = require('lodash');
@@ -33,17 +35,17 @@ DbSet.prototype.filter = function(filterParams, comparison) {
     }
   }, this);
 
-  return results;
+  return new this.constructor(results, this.total);
 };
 
 DbSet.prototype.order = function(orderFields, directions) {
-  return new this.constructor(_.orderBy(this.dataset, orderFields, directions));
+  return new this.constructor(_.orderBy(this.dataset, orderFields, directions), this.total);
 };
 
 DbSet.prototype.page = function(pageSize, page) {
   let start = (page-1)*pageSize;
   let stop = start + pageSize;
-  return new this.constructor(this.dataset.slice(start, stop));
+  return new this.constructor(this.dataset.slice(start, stop), this.total);
 };
 
 /**
@@ -54,7 +56,7 @@ DbSet.prototype.evaluateFilterRule = function(row, filterProp, filterRule) {
   let comparison;
   let rowValue = row[filterProp];
 
-  if (typeof filterRule === 'Object') {
+  if (typeof filterRule === 'object') {
     compareValue = filterRule.value;
     comparison = filterRule.comparison;
   }
@@ -99,7 +101,8 @@ DbSet.prototype.valueEquals = function(value1, value2) {
 
 DbSet.prototype.valueContains = function(value1, value2) {
   if (typeof value1 === 'string' || value1 instanceof String) {
-    return value1.contains(value2);
+    //return value1.includes(value2);
+    return value1.indexOf(value2) !== -1;
   }
   if (Array.isArray(value1)) {
     return value1.indexOf(value2) !== -1;
@@ -108,6 +111,18 @@ DbSet.prototype.valueContains = function(value1, value2) {
 
 DbSet.prototype.forEach = function(cb, ctx) {
   return this.dataset.forEach(cb, ctx);
+};
+
+DbSet.prototype.toJSON = function() {
+  return {
+    data: this.dataset,
+    count: this.count,
+    total: this.total
+  }
+};
+
+DbSet.prototype.toString = function() {
+  return this.dataset.toString();
 };
 
 module.exports = DbSet;

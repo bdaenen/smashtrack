@@ -8,4 +8,8 @@ let dbPool = DbDriver.createPool({
   database: 'smashtracker'
 });
 
+dbPool.on('error', function(error) {
+  console.warn(error);
+});
+
 module.exports = dbPool;
