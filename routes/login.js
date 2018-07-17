@@ -2,10 +2,9 @@ var express = require('express');
 var router = express.Router();
 let passport = require('passport');
 
-/* GET home page. */
 router.get('/', function(req, res, next) {
   res.json({
-    authorized: false,
+    authenticated: req.isAuthenticated(),
     structure: {
       'tag': 'string',
       'password': 'string'
@@ -15,13 +14,13 @@ router.get('/', function(req, res, next) {
 
 router.get('/ok', function(req, res, next) {
   res.json({
-    authorized: true
+    authenticated: req.isAuthenticated()
   })
 });
 
 router.get('/error', function(req, res, next) {
   res.json({
-    authorized: false
+    authenticated: req.isAuthenticated()
   })
 });
 

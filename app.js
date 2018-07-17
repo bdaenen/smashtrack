@@ -36,12 +36,21 @@ app.use(session({
   resave: true,
   saveUninitialized: false,
   cookie : {
-    maxAge: 60*60*48
+    maxAge: 60*60*48*1000
   }
 }));
 //app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.options("/*", function(req, res, next){
+  res.header("Access-Control-Allow-Origin", "http://127.0.0.1:8081");
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  res.sendStatus(200);
+});
 
 if (process.argv.indexOf('dev=1') === -1) {
   app.use(function(req, res, next) {
@@ -54,6 +63,15 @@ if (process.argv.indexOf('dev=1') === -1) {
   });
 }
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "http://127.0.0.1:8081");
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+});
+
+
 passport.use(new LocalStrategy({
     usernameField: 'tag',
   },
@@ -65,12 +83,13 @@ passport.use(new LocalStrategy({
       if (!user) {
         return done(null);
       }
-      bcrypt.compare(password, user.password, function(error, res) {
-        if (res) {
+      bcrypt.compare(password, user.password, function(error, result) {
+        if (result) {
           console.log('authenticated!');
           done(null, user);
         }
         else {
+          // result.json({authenticated: false}); //what's this?
           console.log(error);
           done(error);
         }
@@ -90,13 +109,22 @@ passport.deserializeUser(function(id, done) {
 });
 
 // Moving this to the login router breaks stuff...?
-app.post('/login',
-  passport.authenticate('local', {
-    successRedirect: '/login/ok',
-    failureRedirect: '/login/error',
-    failureFlash: false
-  })
-);
+app.post('/login', function(req, res, next){
+  passport.authenticate('local', function (err, user, info) {
+    if (err) {
+      return next(err);
+    }
+    if (!user) {
+      return res.json({authenticated: !!user});
+    }
+    req.logIn(user, function(err) {
+      if (err) {
+        return next(err);
+      }
+      return res.json({authenticated: !!user, user: {id: user.id, tag: user.tag} || {}});
+    });
+  })(req, res, next);
+});
 
 app.use('/', indexRouter);
 app.use('/login', loginRouter);

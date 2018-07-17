@@ -158,18 +158,24 @@ let dataAccessManager = Object.create({
             player.match_id = match.id;
             usersSaving++;
             // Save the player record
-            savePlayer(player, function(err, user){
+            savePlayer(player, function(err, player){
               usersSaving--;
               if (!usersSaving && !userDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
-              if (err.length || !user.id) {
+              if (err.length || !player.id) {
                 stop = true;
                 callback(err, false);
               }
               else {
-                if (user.data) {
-                  user.data.forEach(function(data){
+                //require('fs').writeFileSync('./debug_' + Date.now() + '_player.json', JSON.stringify(player));
+                if (player.data) {
+                  Object.keys(player.data).forEach(function(key){
+                    let data = {
+                        key: key,
+                        value: player.data[key],
+                        player_id: player.id
+                      };
+                    //require('fs').writeFileSync('./debug_' + Date.now() + '_player_data.json', JSON.stringify(data));
                     if (stop) {return;}
-                    data.player_id = user.id;
                     userDataSaving++;
 
                     saveMatchUserData(data, function(err, userData){
@@ -267,12 +273,14 @@ function savePlayer(data, callback) {
       data.team_id || null,
       +!!data.is_winner
     ],
-    function(sqlerr, results, fields) {
-      sqlerr = sqlerr ? [sqlerr] : [];
-      data.id = results.insertId;
-      callback(sqlerr, data, data);
-      changedDatasets.add('matches');
-    }
+    function(data){
+      return function(sqlerr, results, fields) {
+        sqlerr = sqlerr ? [sqlerr] : [];
+        data.id = results.insertId;
+        callback(sqlerr, data);
+        changedDatasets.add('matches');
+      }
+    }(data)
   );
 }
 

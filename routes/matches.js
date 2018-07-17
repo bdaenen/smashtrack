@@ -24,6 +24,16 @@ router.get('/:id(\\d+)', function(req, res) {
  */
 router.post('/add', function(req, res) {
   let data = req.body;
+  if (data.match) {
+    // We're in prod mode and thus have a user.
+    if (process.argv.indexOf('dev=1') !== -1) {
+      data.match.author_user_id = req.user.id;
+    }
+    // We're in dev mode and might not have a user.
+    else {
+      data.match.author_user_id = (req.user && req.user.id) || 0;
+    }
+  }
 
   dam.createMatch(data, function(err, success) {
     if (!err.length && success) {
