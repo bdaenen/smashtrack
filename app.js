@@ -64,7 +64,11 @@ if (process.argv.indexOf('dev=1') === -1) {
 }
 
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "http://127.0.0.1:8081");
+  let allowedOrigins = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://127.0.0.1:8081', 'http://localhost:8081', 'https://smacker.benn0.be'];
+  let origin = req.headers.origin;
+  if(allowedOrigins.indexOf(origin) > -1){
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
   res.header("Access-Control-Allow-Credentials", "true");
