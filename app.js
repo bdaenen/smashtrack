@@ -46,9 +46,7 @@ app.use(passport.session());
 app.use(function(req, res, next) {
   let allowedOrigins = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://127.0.0.1:8081', 'http://localhost:8081', 'https://smacker.benn0.be'];
   let origin = req.headers.origin;
-  console.log(origin);
   if(allowedOrigins.indexOf(origin) > -1){
-    console.log('allowed!');
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
