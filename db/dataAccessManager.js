@@ -151,22 +151,21 @@ let dataAccessManager = Object.create({
         }
         else {
           let stop = false;
-          let usersSaving = 0;
-          let userDataSaving = 0;
+          let playersSaving = 0;
+          let playerDataSaving = 0;
           data.players.forEach(function(player){
             if (stop) {return;}
             player.match_id = match.id;
-            usersSaving++;
+            playersSaving++;
             // Save the player record
             savePlayer(player, function(err, player){
-              usersSaving--;
-              if (!usersSaving && !userDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
+              playersSaving--;
+              if (!playersSaving && !playerDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
               if (err.length || !player.id) {
                 stop = true;
                 callback(err, false);
               }
               else {
-                //require('fs').writeFileSync('./debug_' + Date.now() + '_player.json', JSON.stringify(player));
                 if (player.data) {
                   Object.keys(player.data).forEach(function(key){
                     let data = {
@@ -174,13 +173,13 @@ let dataAccessManager = Object.create({
                         value: player.data[key],
                         player_id: player.id
                       };
-                    //require('fs').writeFileSync('./debug_' + Date.now() + '_player_data.json', JSON.stringify(data));
-                    if (stop) {return;}
-                    userDataSaving++;
+                    if (stop || !data.key || !data.value || !data.player_id) {return;}
+                    playerDataSaving++;
 
-                    saveMatchUserData(data, function(err, userData){
-                      userDataSaving--;
-                      //if (!usersSaving && !userDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
+                    savePlayerData(data, function(err, userData){
+                      playerDataSaving--;
+                      // Does this need to exist a second time?
+                      // if (!playersSaving && !playerDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
                       if (err.length || !userData.id) {
                         stop = true;
                         callback(err, false);
@@ -288,7 +287,7 @@ function savePlayer(data, callback) {
  * @param data
  * @param callback
  */
-function saveMatchUserData(data, callback) {
+function savePlayerData(data, callback) {
   dbPool.query(
     'INSERT INTO `player_data` (player_id, `key`, value) VALUES (?, ?, ?)',
     [
@@ -365,7 +364,7 @@ function validateMatchData(data, callback){
     'stage_id',
     'author_user_id'
   ];
-  let requiredUserFields = [
+  let requiredPlayerFields = [
     'user_id',
     'character_id',
     'is_winner'
@@ -384,7 +383,7 @@ function validateMatchData(data, callback){
   }
   missingUserData = [];
   data.players.forEach(function(user) {
-    let missing = _.difference(requiredUserFields, Object.keys(user));
+    let missing = _.difference(requiredPlayerFields, Object.keys(user));
     if (missing.length) {
       missingUserData.push(missing);
     }
