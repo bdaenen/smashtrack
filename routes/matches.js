@@ -12,11 +12,33 @@ router.get('/', function(req, res) {
   res.json(dam.matches.order('id').page(pageSize, page));
 });
 
+router.post('/', function(req, res) {
+  let data = req.body;
+
+  let filters = data.filters;
+  let pageSize = Math.abs(parseInt(data.pageSize, 10)) || 50;
+  let page = Math.abs(parseInt(data.page, 10)) || 1;
+
+  if (!filters) {
+    res.json({success: false, errors: {msg: 'Missing data', param: 'filters'}})
+  }
+
+  /**
+   * @type DbSet
+   */
+  let matches = dam.matches;
+  filters.forEach(function(filter){
+    matches = matches.filter(filter, filter.comparison);
+  });
+
+  res.json(matches.page(pageSize, page));
+});
+
 /**
  *
  */
 router.get('/:id(\\d+)', function(req, res) {
-  res.json(dam.matches.filter({id: parseInt(req.params.id, 10)}));
+  res.json(dam.matches.filter({'match.id': parseInt(req.params.id, 10)}));
 });
 
 /**
@@ -52,8 +74,5 @@ router.get('/add', function(req, res) {
   res.json({structure: require('../db/structure/addMatch')});
 });
 
-/**
- * @param callback
- */
 
 module.exports = router;

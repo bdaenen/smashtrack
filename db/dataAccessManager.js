@@ -97,7 +97,7 @@ let dataAccessManager = Object.create({
             match: {
               id: result.match.id,
               is_team: result.match.is_team,
-              date: result.match.date,
+              date: result.match.date.toLocaleDateString('be-nl', { year: 'numeric', month: '2-digit', day: '2-digit' }),
               stocks: result.match.stocks,
               time: result.match.match_time,
               time_remaining: result.match.time_remaining,
@@ -111,7 +111,7 @@ let dataAccessManager = Object.create({
             id: result.player.id,
             user: {id: result.user.id, tag: result.user.tag},
             character: result.character,
-            team: result.team,
+            team: result.team.id ? result.team : null,
             is_winner: result.player.is_winner,
             data: {}
           };
@@ -127,9 +127,9 @@ let dataAccessManager = Object.create({
         });
 
         this.matches = mapDbToDam(finalArray);
-        //this.matches = this.structureMa(results);
+
         callback && callback(this.matches);
-        //this.emitter.emit('refresh.matches', this.matches);
+        this.emitter.emit('refresh.matches', this.matches);
     }.bind(this));
   },
 
@@ -223,14 +223,29 @@ let dataAccessManager = Object.create({
   }
 });
 
+/**
+ * @type {null|DbSet}
+ */
 dataAccessManager.users = null;
+/**
+ * @type {null|DbSet}
+ */
 dataAccessManager.stages= null;
+/**
+ * @type {null|DbSet}
+ */
 dataAccessManager.characters= null;
+/**
+ * @type {null|DbSet}
+ */
 dataAccessManager.teams= null;
 dataAccessManager._runningQueryCount= 0;
 dataAccessManager.isReady= function(){
   return this._runningQueryCount === 0;
 };
+/**
+ * @type {EventEmitter}
+ */
 dataAccessManager.emitter= new Emitter();
 
 /**

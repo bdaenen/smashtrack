@@ -1,10 +1,15 @@
+const _ = require('lodash');
+
+/**
+ * @param results
+ * @param total
+ * @constructor
+ */
 let DbSet = function(results, total) {
   this.dataset = results || [];
   this.count = this.dataset.length;
   this.total = total || this.dataset.length;
 };
-
-const _ = require('lodash');
 
 DbSet.prototype.COMPARE_OR = 1;
 DbSet.prototype.COMPARE_AND = 2;
@@ -16,6 +21,11 @@ DbSet.prototype.COMPARISON_LESSER_THAN_EQUAL = 5;
 DbSet.prototype.COMPARISON_GREATER_THAN_EQUAL = 6;
 DbSet.prototype.COMPARISON_CONTAINS = 8;
 
+/**
+ * @param filterParams
+ * @param comparison
+ * @returns {DbSet}
+ */
 DbSet.prototype.filter = function(filterParams, comparison) {
   comparison = comparison || this.COMPARE_OR;
   let results = this.dataset.filter(function(row){
@@ -51,10 +61,14 @@ DbSet.prototype.page = function(pageSize, page) {
 /**
  *
  */
-DbSet.prototype.evaluateFilterRule = function(row, filterProp, filterRule) {
+DbSet.prototype.evaluateFilterRule = function(rowValue, filterProp, filterRule) {
+  filterProp = filterProp.split('.');
   let compareValue;
   let comparison;
-  let rowValue = row[filterProp];
+
+  for (let i = 0; i < filterProp.length; i++) {
+    rowValue = rowValue[filterProp[i]];
+  }
 
   if (typeof filterRule === 'object') {
     compareValue = filterRule.value;
@@ -65,7 +79,7 @@ DbSet.prototype.evaluateFilterRule = function(row, filterProp, filterRule) {
     comparison = this.COMPARISON_EQUALS;
   }
 
-  switch (comparison) {
+  switch (this.mapComparison(comparison)) {
     case this.COMPARISON_LESSER_THAN:
       return this.valueLesserThan(rowValue, compareValue);
       break;
@@ -73,7 +87,7 @@ DbSet.prototype.evaluateFilterRule = function(row, filterProp, filterRule) {
       return this.valueGreaterThan(rowValue, compareValue);
       break;
     case this.COMPARISON_EQUALS:
-      return this.valueEquals(rowValue, compareValue)
+      return this.valueEquals(rowValue, compareValue);
       break;
     case this.COMPARISON_LESSER_THAN_EQUAL:
       return this.valueLesserThan(rowValue, compareValue) || this.valueEquals(rowValue, compareValue);
@@ -85,6 +99,20 @@ DbSet.prototype.evaluateFilterRule = function(row, filterProp, filterRule) {
       return this.valueContains(rowValue, compareValue);
       break;
   }
+};
+
+DbSet.prototype.mapComparison = function(comparison) {
+  if (typeof comparison === 'string') {
+    switch (comparison) {
+      case '<': return this.COMPARISON_LESSER_THAN;
+      case '<=': return this.COMPARISON_LESSER_THAN_EQUAL;
+      case '>': return this.COMPARISON_GREATER_THAN;
+      case '>=': return this.COMPARISON_GREATER_THAN_EQUAL;
+      case '=': return this.COMPARISON_EQUALS;
+      case 'IN':case'in': return this.COMPARISON_CONTAINS;
+    }
+  }
+  return comparison;
 };
 
 DbSet.prototype.valueLesserThan = function(value1, value2) {
