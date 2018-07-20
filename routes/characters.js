@@ -6,7 +6,7 @@ let dam = require('../db/dataAccessManager');
  *
  */
 router.get('/', function(req, res) {
-  let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
+  let pageSize = Math.abs(parseInt(req.query.pageSize) || 100);
   let page = Math.abs(parseInt(req.query.page, 10) || 1);
 
   res.json(dam.characters.order('id').page(pageSize, page));
