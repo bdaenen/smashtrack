@@ -2,10 +2,10 @@ const DbDriver = require('mysql');
 
 let dbPool = DbDriver.createPool({
   connectionLimit: 10,
-  host: '127.0.0.1',
-  user: 'smashtracker',
-  password: 'munK84xMJp6pe693kTJcbKqB',
-  database: 'smashtracker'
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 
 dbPool.on('error', function(error) {
