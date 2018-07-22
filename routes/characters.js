@@ -8,8 +8,10 @@ let dam = require('../db/dataAccessManager');
 router.get('/', function(req, res) {
   let pageSize = Math.abs(parseInt(req.query.pageSize) || 100);
   let page = Math.abs(parseInt(req.query.page, 10) || 1);
+  let order = req.query.order || 'id';
+  let orderDirection = req.query.orderDirection || 'asc';
 
-  res.json(dam.characters.order('id').page(pageSize, page));
+  res.json(dam.characters.order(order, orderDirection).page(pageSize, page));
 });
 
 /**
