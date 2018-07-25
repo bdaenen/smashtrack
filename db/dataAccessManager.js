@@ -85,7 +85,9 @@ let dataAccessManager = Object.create({
       ' INNER JOIN `user` ON player.user_id = user.id' +
       ' INNER JOIN `character` ON player.character_id = character.id' +
       ' LEFT JOIN `team` ON player.team_id = team.id' +
-      ' LEFT JOIN `player_data` ON `player_data`.player_id = player.id'
+      ' LEFT JOIN `player_data` ON `player_data`.player_id = player.id' +
+      ' LEFT JOIN `match_metadata` ON `match_metadata`.`match_id` = `match`.`id`' +
+      ' LEFT JOIN `metadata` ON `metadata`.`id` = `match_metadata`.`metadata_id`'
       },
       function(error, results){
         this._runningQueryCount--;
@@ -102,7 +104,8 @@ let dataAccessManager = Object.create({
               time: result.match.match_time,
               time_remaining: result.match.time_remaining,
               stage: result.stage,
-              author_user: {id: result.author.id, tag: result.author.tag}
+              author_user: {id: result.author.id, tag: result.author.tag},
+              metadata: {}
             },
             players: {},
           };
@@ -118,6 +121,11 @@ let dataAccessManager = Object.create({
 
           if (result.player_data && result.player_data.id) {
             datarow.players[result.player.id].data[result.player_data.key] = result.player_data.value;
+          }
+
+          // Refactor this to take the link with metadata into account (match_metadata vs player_metadata)
+          if (result.metadata && result.metadata.id) {
+            datarow.match.metadata[result.metadata.key] = result.metadata.value;
           }
         });
 
@@ -220,6 +228,52 @@ let dataAccessManager = Object.create({
         changedDatasets.add('users');
       });
     });
+  },
+  /**
+   * @param data
+   * @param callback
+   */
+  addMatchMetadata: function (data, callback) {
+    let errors = [];
+    if (this.matches.indexOf(data.match) === -1) {
+      errors.push({msg: 'This match does not exist.'});
+    }
+    validateMetadata(data.metadata, function(err, success){
+      if (err.length || !success) {
+        errors.push(err);
+        callback(errors, false);
+      }
+      else {
+        let matchMetaDataSaving = 0;
+        let stop = false;
+
+        Object.keys(data.metadata).forEach(function(key){
+          if (stop) {return;}
+          let metadata = {
+            key: key,
+            value: data.metadata[key]
+          };
+
+          saveMetadata(metadata, function(err, metadata){
+            matchMetaDataSaving++;
+            if (err.length || !metadata.id) {
+              stop = true;
+              callback(err, false);
+            }
+            saveMatchMetadata({match_id: data.match.id, metadata_id: metadata.id}, function(err, matchMetaData){
+              matchMetaDataSaving--;
+              if (err.length || !matchMetaData.id) {
+                stop = true;
+                callback(err, false);
+              }
+              if (!matchMetaDataSaving) {
+                callback(err, true);
+              }
+            });
+          }.bind(this))
+        }, this);
+      }
+    });
   }
 });
 
@@ -319,6 +373,33 @@ function savePlayerData(data, callback) {
   );
 }
 
+function saveMetadata(data, callback) {
+  dbPool.query(
+    'INSERT INTO `metadata` (`key`, `value`) VALUES (?, ?)',
+    [data.key, data.value],
+    function(sqlerr, results, fields) {
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data);
+      // This ain't a thing yet
+      // changedDatasets.add('metadata');
+    }
+  )
+}
+
+function saveMatchMetadata(data, callback) {
+  dbPool.query(
+    'INSERT INTO `match_metadata` (`match_id`, `metadata_id`) VALUES (?, ?)',
+    [data.match_id, data.metadata_id],
+    function(sqlerr, results, fields) {
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data);
+      changedDatasets.add('matches');
+    }
+  )
+}
+
 /**
  * Reload changed data
  */
@@ -409,6 +490,16 @@ function validateMatchData(data, callback){
   }
 
   return callback([], true);
+}
+
+// TODO: check on length? Is always valid as it's just an object.
+function validateMetadata(data, callback) {
+  if (data) {
+    callback([], true);
+  }
+  else {
+    callback([{msg: 'Missing metadata', param: 'metadata'}], false)
+  }
 }
 
 /**

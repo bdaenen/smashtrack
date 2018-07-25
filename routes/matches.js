@@ -12,6 +12,25 @@ router.get('/', function(req, res) {
   res.json(dam.matches.order('id').page(pageSize, page));
 });
 
+router.post('/metadata/:id(\\d+)', function(req, res) {
+  let data = req.body;
+  let match = dam.matches.filter({'match.id': parseInt(req.params.id, 10)});
+
+  if (!match) {
+    return res.json([{msg: 'Invalid match ID'}])
+  }
+  data.match = match;
+  dam.addMatchMetadata(data, function(err, success){
+    if (!err.length && success) {
+      res.json({success: true});
+    }
+    else {
+      res.json({success: false, errors: err});
+    }
+  });
+
+});
+
 router.post('/', function(req, res) {
   let data = req.body;
 

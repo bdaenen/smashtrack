@@ -141,6 +141,10 @@ DbSet.prototype.forEach = function(cb, ctx) {
   return this.dataset.forEach(cb, ctx);
 };
 
+DbSet.prototype.indexOf = function(search, from) {
+  return this.dataset.indexOf(search, from);
+};
+
 DbSet.prototype.toJSON = function() {
   return {
     data: this.dataset,
