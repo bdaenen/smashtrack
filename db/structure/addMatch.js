@@ -9,7 +9,10 @@ module.exports = {
       time: {type: 'string', format: 'hh:mm:ss', required: true},
       time_remaining: {type: 'string', format:'hh:mm:ss', required: true},
       stage_id: {type: 'int', required: true},
-      author_user_id: {type: 'int', required: true}
+      author_user_id: {type: 'int', required: true},
+      data: {type: 'object', required: false, format: {
+          "*": "int|string|null|boolean"
+      }}
     }
   },
   players: {
@@ -22,10 +25,9 @@ module.exports = {
       is_winner: {type: 'bool', required: true},
       data: {
         type: 'array',
-        format: [{
-            key: {type: 'string', required: true},
-            value: {type: 'string', required: true}
-          }]
+        data: {type: 'object', required: false, format: {
+            "*": "int|string|null|boolean"
+          }}
       }
     }]
   }

@@ -7,7 +7,6 @@ const _ = require('lodash');
  */
 let DbSet = function(results, total) {
   this.dataset = results || [];
-  this.count = this.dataset.length;
   this.total = total || this.dataset.length;
 };
 
@@ -20,6 +19,24 @@ DbSet.prototype.COMPARISON_EQUALS = 4;
 DbSet.prototype.COMPARISON_LESSER_THAN_EQUAL = 5;
 DbSet.prototype.COMPARISON_GREATER_THAN_EQUAL = 6;
 DbSet.prototype.COMPARISON_CONTAINS = 8;
+
+Object.defineProperty(DbSet.prototype, 'length', {
+  get: function(){
+    return this.dataset.length;
+  },
+  set: function(length) {
+    this.dataset.length = length;
+  }
+});
+
+Object.defineProperty(DbSet.prototype, 'count', {
+  get: function(){
+    return this.length;
+  },
+  set: function(length) {
+    this.length = length;
+  }
+});
 
 /**
  * @param filterParams

@@ -1,5 +1,9 @@
 module.exports = {
-  metadata: {
+  match_id: {
+    type: 'int',
+    required: true
+  },
+  data: {
     required: true,
     type: 'object',
     format: {
