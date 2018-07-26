@@ -85,7 +85,8 @@ let dataAccessManager = Object.create({
       ' INNER JOIN `user` ON player.user_id = user.id' +
       ' INNER JOIN `character` ON player.character_id = character.id' +
       ' LEFT JOIN `team` ON player.team_id = team.id' +
-      ' LEFT JOIN `player_data` ON `player_data`.player_id = player.id'
+      ' LEFT JOIN `player_data` ON `player_data`.player_id = player.id' +
+      ' LEFT JOIN `match_data` ON `match_data`.`match_id` = `match`.`id`;'
       },
       function(error, results){
         this._runningQueryCount--;
@@ -102,7 +103,8 @@ let dataAccessManager = Object.create({
               time: result.match.match_time,
               time_remaining: result.match.time_remaining,
               stage: result.stage,
-              author_user: {id: result.author.id, tag: result.author.tag}
+              author_user: {id: result.author.id, tag: result.author.tag},
+              data: {}
             },
             players: {},
           };
@@ -118,6 +120,10 @@ let dataAccessManager = Object.create({
 
           if (result.player_data && result.player_data.id) {
             datarow.players[result.player.id].data[result.player_data.key] = result.player_data.value;
+          }
+
+          if (result.match_data && result.match_data.id) {
+            datarow.match.data[result.match_data.key] = result.match_data.value;
           }
         });
 
@@ -139,7 +145,6 @@ let dataAccessManager = Object.create({
    */
   createMatch: function(data, callback){
     // This is horrible.
-    let callbackCalled = false;
     validateMatchData(data, function(err, success) {
       if (err.length || !success) {
         return callback(err, success);
@@ -150,51 +155,74 @@ let dataAccessManager = Object.create({
           callback(err, false);
         }
         else {
-          let stop = false;
-          let playersSaving = 0;
-          let playerDataSaving = 0;
-          data.players.forEach(function(player){
-            if (stop) {return;}
-            player.match_id = match.id;
-            playersSaving++;
-            // Save the player record
-            savePlayer(player, function(err, player){
-              playersSaving--;
-              if (!playersSaving && !playerDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
-              if (err.length || !player.id) {
-                stop = true;
-                callback(err, false);
-              }
-              else {
-                if (player.data) {
-                  Object.keys(player.data).forEach(function(key){
-                    let data = {
-                        key: key,
-                        value: player.data[key],
-                        player_id: player.id
-                      };
-                    if (stop || !data.key || !data.value || !data.player_id) {return;}
-                    playerDataSaving++;
+          this.createMatchPlayers(data, function(err, success){
+            if (err.length || !success) {
+              callback(err, false);
+              return;
+            }
+            if (data.match.data && Object.keys(data.match.data).length) {
+              this.addMatchData({match_id: data.match.id, data: data.match.data}, callback);
+            }
 
-                    savePlayerData(data, function(err, userData){
-                      playerDataSaving--;
-                      // Does this need to exist a second time?
-                      // if (!playersSaving && !playerDataSaving && !callbackCalled) {callbackCalled = true;callback(err, true);return;}
-                      if (err.length || !userData.id) {
-                        stop = true;
-                        callback(err, false);
-                      }
-                    }.bind(this))
-                  }, this);
-                }
-              }
-            }.bind(this));
-          }, this);
+          });
         }
       }.bind(this));
 
       callback(err, true);
     }.bind(this));
+  },
+
+  createMatchPlayers: function(data, callback) {
+    let stop = false;
+    let playersSaving = 0;
+    let playerDataSaving = 0;
+    data.players.forEach(function(player){
+      playersSaving++;
+      if (stop) {playersSaving--;return;}
+      player.match_id = data.match.id;
+      // Save the player record
+      savePlayer(player, function(err, player){
+        if (err.length || !player.id) {
+          playersSaving--;
+          stop = true;
+          callback(err, false);
+        }
+        else {
+          if (player.data) {
+            Object.keys(player.data).forEach(function(key){
+              playerDataSaving++;
+              let data = {
+                key: key,
+                value: player.data[key],
+                player_id: player.id
+              };
+              if (stop || !data.key || !data.value || !data.player_id) {playerDataSaving--;return;}
+
+              savePlayerData(data, function(err, userData){
+                playerDataSaving--;
+                if (err.length || !userData.id) {
+                  stop = true;
+                  callback(err, false);
+                }
+                if (!playerDataSaving) {
+                  playersSaving--;
+                  if (!playersSaving) {
+                    callback(err, true);
+                  }
+                  return;
+                }
+              }.bind(this))
+            }, this);
+          }
+          else {
+            playersSaving--;
+            if (!playersSaving && !playerDataSaving) {
+              callback(err, true);
+            }
+          }
+        }
+      }.bind(this));
+    }, this);
   },
 
   /**
@@ -220,6 +248,43 @@ let dataAccessManager = Object.create({
         changedDatasets.add('users');
       });
     });
+  },
+  /**
+   * @param data
+   * @param callback
+   */
+  addMatchData: function (data, callback) {
+    let errors = [];
+    if (this.matches.filter({'match.id': data.match_id}).length) {
+      errors.push({msg: 'This match does not exist.'});
+    }
+
+    let matchDataSaving = 0;
+    let stop = false;
+
+    let keys = Object.keys(data.data);
+    for (let i = 0, l = keys.length; i < l; i++) {
+      if(stop){break;}
+
+      let key = keys[i];
+      let matchData = {
+        match_id: data.match_id,
+        key: key,
+        value: data.data[key]
+      };
+
+      matchDataSaving++;
+      saveMatchData(matchData, function(err, matchData) {
+        matchDataSaving--;
+        if (err.length || !matchData.id) {
+          stop = true;
+          callback(err, false);
+        }
+        else if (matchDataSaving <= 0) {
+          callback(err, true);
+        }
+      }.bind(this))
+    }
   }
 });
 
@@ -319,6 +384,32 @@ function savePlayerData(data, callback) {
   );
 }
 
+function saveMatchData(data, callback) {
+  dbPool.query(
+    'INSERT INTO `match_data` (`match_id`, `key`, `value`) VALUES (?, ?, ?)',
+    [data.match_id, data.key, data.value],
+    function(sqlerr, results, fields) {
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data);
+      changedDatasets.add('matches');
+    }
+  )
+}
+
+function saveMatchMetadata(data, callback) {
+  dbPool.query(
+    'INSERT INTO `match_metadata` (`match_id`, `metadata_id`) VALUES (?, ?)',
+    [data.match_id, data.metadata_id],
+    function(sqlerr, results, fields) {
+      sqlerr = sqlerr ? [sqlerr] : [];
+      data.id = results.insertId;
+      callback(sqlerr, data);
+      changedDatasets.add('matches');
+    }
+  )
+}
+
 /**
  * Reload changed data
  */
@@ -409,6 +500,16 @@ function validateMatchData(data, callback){
   }
 
   return callback([], true);
+}
+
+// TODO: check on length? Is always valid as it's just an object.
+function validateMetadata(data, callback) {
+  if (data) {
+    callback([], true);
+  }
+  else {
+    callback([{msg: 'Missing metadata', param: 'metadata'}], false)
+  }
 }
 
 /**

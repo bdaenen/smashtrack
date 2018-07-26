@@ -12,6 +12,23 @@ router.get('/', function(req, res) {
   res.json(dam.matches.order('id').page(pageSize, page));
 });
 
+router.post('/data/add', function(req, res) {
+  let data = req.body;
+
+  dam.addMatchData(data, function(err, success){
+    if (!err.length && success) {
+      res.json({success: true});
+    }
+    else {
+      res.json({success: false, errors: err});
+    }
+  });
+});
+
+router.get('/data/add', function(req, res) {
+  res.json({structure: require('../db/structure/addMatchData')});
+});
+
 router.post('/', function(req, res) {
   let data = req.body;
 
