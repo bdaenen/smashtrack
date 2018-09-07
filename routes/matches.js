@@ -61,7 +61,7 @@ router.get('/:id(\\d+)', function(req, res) {
 /**
  *
  */
-router.post('/add', function(req, res) {
+router.post('/add', async function(req, res) {
   let data = req.body;
   if (data.match) {
     // We're in prod mode and thus have a user.
@@ -74,14 +74,14 @@ router.post('/add', function(req, res) {
     }
   }
 
-  dam.createMatch(data, function(err, success) {
-    if (!err.length && success) {
-      res.json({success: true});
-    }
-    else {
-      res.json({success: false, errors: err});
-    }
-  });
+
+  try {
+      let success = await dam.createMatch(data);
+      res.json({success: success});
+  }
+  catch (error) {
+      res.json({success: false, errors: error.message});
+  }
 });
 
 /**

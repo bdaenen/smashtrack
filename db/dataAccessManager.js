@@ -139,91 +139,37 @@ let dataAccessManager = Object.create({
     }.bind(this));
   },
 
-  /**
-   * @param data
-   * @param callback
-   */
-  createMatch: function(data, callback){
-    // This is horrible.
-    validateMatchData(data, function(err, success) {
-      if (err.length || !success) {
-        return callback(err, success);
-      }
-      // Save the match record
-      saveMatch(data.match, function(err, match){
-        if (err.length || !match.id) {
-          callback(err, false);
+    /**
+     * @param data
+     */
+    createMatch: async function(data){
+        // Throws an error if it does not validate.
+        let validates = await validateMatchData(data);
+
+        if (!validates) {
+          return false;
         }
-        else {
-          this.createMatchPlayers(data, function(err, success){
-            if (err.length || !success) {
-              callback(err, false);
-              return;
+
+        let match = await saveMatch(data.match);
+        data.players.forEach(async function(dataPlayer){
+            dataPlayer.match_id = match.id;
+            let player = await savePlayer(dataPlayer);
+            if (player.data) {
+                Object.keys(dataPlayer.data).forEach(async function(key){
+                    let data = {
+                        key: key,
+                        value: dataPlayer.data[key],
+                        player_id: player.id
+                    };
+                    if (!data.key || !data.value || !data.player_id) {throw new Error('Invalid data provided for player ' + player.id);}
+
+                    await savePlayerData(data);
+                }, this);
             }
-            if (data.match.data && Object.keys(data.match.data).length) {
-              this.addMatchData({match_id: data.match.id, data: data.match.data}, callback);
-            }
+        }, this);
 
-          });
-        }
-      }.bind(this));
-
-      callback(err, true);
-    }.bind(this));
-  },
-
-  createMatchPlayers: function(data, callback) {
-    let stop = false;
-    let playersSaving = 0;
-    let playerDataSaving = 0;
-    data.players.forEach(function(player){
-      playersSaving++;
-      if (stop) {playersSaving--;return;}
-      player.match_id = data.match.id;
-      // Save the player record
-      savePlayer(player, function(err, player){
-        if (err.length || !player.id) {
-          playersSaving--;
-          stop = true;
-          callback(err, false);
-        }
-        else {
-          if (player.data) {
-            Object.keys(player.data).forEach(function(key){
-              playerDataSaving++;
-              let data = {
-                key: key,
-                value: player.data[key],
-                player_id: player.id
-              };
-              if (stop || !data.key || !data.value || !data.player_id) {playerDataSaving--;return;}
-
-              savePlayerData(data, function(err, userData){
-                playerDataSaving--;
-                if (err.length || !userData.id) {
-                  stop = true;
-                  callback(err, false);
-                }
-                if (!playerDataSaving) {
-                  playersSaving--;
-                  if (!playersSaving) {
-                    callback(err, true);
-                  }
-                  return;
-                }
-              }.bind(this))
-            }, this);
-          }
-          else {
-            playersSaving--;
-            if (!playersSaving && !playerDataSaving) {
-              callback(err, true);
-            }
-          }
-        }
-      }.bind(this));
-    }, this);
-  },
+        return true;
+    },
 
   /**
    * @param data
@@ -249,6 +195,7 @@ let dataAccessManager = Object.create({
       });
     });
   },
+
   /**
    * @param data
    * @param callback
@@ -315,73 +262,82 @@ dataAccessManager.emitter= new Emitter();
 
 /**
  * @param data
- * @param callback
  */
-function saveMatch(data, callback) {
-  dbPool.query(
-    'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [
-      data.date || null,
-      data.stocks,
-      data.stage_id,
-      data.time || null,
-      data.time_remaining || null,
-      +!!data.is_team,
-      data.author_user_id
-    ],
-    function(sqlerr, results, fields){
-      sqlerr = sqlerr ? [sqlerr] : [];
-      data.id = results.insertId;
-      callback(sqlerr, data);
-      changedDatasets.add('matches');
-    }
-  );
-}
+function saveMatch(data) {
+  return new Promise(function(resolve, reject){
+    dbPool.query(
+      'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        data.date || null,
+        data.stocks,
+        data.stage_id,
+        data.time || null,
+        data.time_remaining || null,
+        +!!data.is_team,
+        data.author_user_id
+      ],
+      function(sqlerr, results, fields){
+        if (sqlerr) {
+          throw sqlerr;
+        }
 
-/**
- * @param data
- * @param callback
- */
-function savePlayer(data, callback) {
-  dbPool.query(
-    'INSERT INTO `player` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
-    [
-      data.match_id,
-      data.user_id,
-      data.character_id,
-      data.team_id || null,
-      +!!data.is_winner
-    ],
-    function(data){
-      return function(sqlerr, results, fields) {
-        sqlerr = sqlerr ? [sqlerr] : [];
         data.id = results.insertId;
-        callback(sqlerr, data);
         changedDatasets.add('matches');
+        resolve(data);
       }
-    }(data)
-  );
+    );
+  });
 }
 
 /**
  * @param data
- * @param callback
  */
-function savePlayerData(data, callback) {
-  dbPool.query(
-    'INSERT INTO `player_data` (player_id, `key`, value) VALUES (?, ?, ?)',
-    [
-      data.player_id,
-      data.key,
-      data.value
-    ],
-    function(sqlerr, results, fields) {
-      sqlerr = sqlerr ? [sqlerr] : [];
-      data.id = results.insertId;
-      callback(sqlerr, data);
-      changedDatasets.add('matches');
-    }
-  );
+function savePlayer(data) {
+  return new Promise(function(resolve, reject){
+      dbPool.query(
+        'INSERT INTO `player` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
+        [
+            data.match_id,
+            data.user_id,
+            data.character_id,
+            data.team_id || null,
+            +!!data.is_winner
+        ],
+        function(sqlerr, results, fields) {
+            if (sqlerr) {
+              throw sqlerr;
+            }
+
+            data.id = results.insertId;
+            changedDatasets.add('matches');
+            return resolve(data);
+        }
+      );
+  });
+}
+
+/**
+ * @param data
+ */
+function savePlayerData(data) {
+  return new Promise(function(resolve, reject) {
+    dbPool.query(
+      'INSERT INTO `player_data` (player_id, `key`, `value`) VALUES (?, ?, ?)',
+      [
+        data.player_id,
+        data.key,
+        data.value
+      ],
+      function(sqlerr, results, fields) {
+        if (sqlerr) {
+          reject(sqlerr);
+        }
+        data.id = results.insertId;
+        changedDatasets.add('matches');
+        return resolve(data);
+      }
+    );
+  });
 }
 
 function saveMatchData(data, callback) {
@@ -438,14 +394,14 @@ function validateUserData(data, callback) {
 
   let missingData =_.difference(requiredFields, Object.keys(data));
   if (missingData.length) {
-    errors.push([{msg: 'Missing data', param: missingData}]);
+    throw new Error('Missing data: ' + missingData);
   }
 
-  Object.keys(data).forEach(function(key){
+  Object.keys(data).forEach(function(key) {
     if (key.endsWith('_confirmation')) {
       let matchingKey = key.substr(0, key.lastIndexOf('_confirmation'));
       if (data[key] !== data[matchingKey]) {
-        errors.push({param: key, param2: matchingKey, msg: 'parameters should match.'});
+        throw new Error('Parameters should match: ' + [key, matchingKey]);
       }
     }
   });
@@ -458,48 +414,47 @@ function validateUserData(data, callback) {
 }
 
 /**
- * TODO: validate based on addMatch structure
  * @param data
- * @param callback
- * @returns {*}
+ * @returns {boolean}
  */
-function validateMatchData(data, callback){
-  let requiredFields = ['match', 'players'];
-  let requiredMatchFields = [
-    'stocks',
-    'stage_id',
-    'author_user_id'
-  ];
-  let requiredPlayerFields = [
-    'user_id',
-    'character_id',
-    'is_winner'
-  ];
-  let missingData;
-  let missingMatchData;
-  let missingUserData;
+function validateMatchData(data){
+      let requiredFields = ['match', 'players'];
+      let requiredMatchFields = [
+          'stocks',
+          'stage_id',
+          'author_user_id'
+      ];
+      let requiredPlayerFields = [
+          'user_id',
+          'character_id',
+          'is_winner'
+      ];
+      let missingData;
+      let missingMatchData;
+      let missingUserData;
 
-  missingData =_.difference(requiredFields, Object.keys(data));
-  if (missingData.length) {
-    return callback({errors: [{msg: 'Missing data', param: missingData}]}, false)
-  }
-  missingMatchData = _.difference(requiredMatchFields, Object.keys(data.match));
-  if (missingMatchData.length) {
-    return callback({errors: [{msg: 'Missing match data', param: missingMatchData}]}, false);
-  }
-  missingUserData = [];
-  data.players.forEach(function(user) {
-    let missing = _.difference(requiredPlayerFields, Object.keys(user));
-    if (missing.length) {
-      missingUserData.push(missing);
-    }
-  });
+      missingData =_.difference(requiredFields, Object.keys(data));
+      if (missingData.length) {
+          throw new Error('Missing data: ' + missingData);
+      }
 
-  if (missingMatchData.length) {
-    return callback({errors: [{msg: 'Missing user data', param: missingUserData}]}, false);
-  }
+      missingMatchData = _.difference(requiredMatchFields, Object.keys(data.match));
+      if (missingMatchData.length) {
+          throw new Error('Missing match data: ' + missingMatchData);
+      }
+      missingUserData = [];
+      data.players.forEach(function(user) {
+          let missing = _.difference(requiredPlayerFields, Object.keys(user));
+          if (missing.length) {
+              missingUserData.push(missing);
+          }
+      });
 
-  return callback([], true);
+      if (missingMatchData.length) {
+          throw new Error('missing user data: ' + missingUserData);
+      }
+
+      return true;
 }
 
 // TODO: check on length? Is always valid as it's just an object.
