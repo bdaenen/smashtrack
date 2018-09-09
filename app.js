@@ -12,7 +12,7 @@ let matchesRouter = require('./routes/matches');
 let charactersRouter = require('./routes/characters');
 let stagesRouter = require('./routes/stages');
 let teamsRouter = require('./routes/teams');
-
+let adminRouter = require('./routes/admin');
 
 let passport = require('passport');
 let LocalStrategy = require('passport-local').Strategy;
@@ -20,17 +20,14 @@ let session = require("express-session");
 
 let app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'hbs');
-
+// Middleware
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-
+// Sessions
 app.use(session({
   secret: "munK84xMJp6pe693kTJcbKqB",
   resave: true,
@@ -40,9 +37,12 @@ app.use(session({
   }
 }));
 //app.use(flash());
+
+// Init passport
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Set CORS headers
 app.use(function(req, res, next) {
   let allowedOrigins = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://127.0.0.1:8081', 'http://localhost:8081', 'https://smacker.benn0.be', 'https://smackerboard.benn0.be'];
   let origin = req.headers.origin;
@@ -55,10 +55,12 @@ app.use(function(req, res, next) {
   next();
 });
 
+// Always approve preflight CORS requests.
 app.options("/*", function(req, res, next){
   res.sendStatus(200);
 });
 
+// Don't require a login on dev, otherwise always do.
 if (process.argv.indexOf('dev=1') === -1) {
   app.use(function(req, res, next) {
     if (req.url === '/login' || req.isAuthenticated()) {
@@ -70,6 +72,7 @@ if (process.argv.indexOf('dev=1') === -1) {
   });
 }
 
+// Passport authentication
 passport.use(new LocalStrategy({
     usernameField: 'tag',
   },
@@ -83,23 +86,22 @@ passport.use(new LocalStrategy({
       }
       bcrypt.compare(password, user.password, function(error, result) {
         if (result) {
-          console.log('authenticated!');
+          console.log(user.tag, 'just logged in.');
           done(null, user);
         }
         else {
           // result.json({authenticated: false}); //what's this?
-          console.log(error);
-          done(error);
+          done(null);
         }
       });
     });
   }
 ));
 
+// Passport user persistance
 passport.serializeUser(function(user, done) {
   done(null, user.id);
 });
-
 passport.deserializeUser(function(id, done) {
   require('./db/db').query('SELECT * FROM user WHERE id = ?', [id], function(error, results, fields){
     done(error, results[0]);
@@ -131,10 +133,11 @@ app.use('/matches', matchesRouter);
 app.use('/characters', charactersRouter);
 app.use('/stages', stagesRouter);
 app.use('/teams', teamsRouter);
+app.use('/admin', adminRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  next(createError(404));
+  res.sendStatus(404);
 });
 
 // error handler
@@ -144,8 +147,7 @@ app.use(function(err, req, res, next) {
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
   // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+  res.sendStatus(err.status || 500);
 });
 
 

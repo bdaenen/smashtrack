@@ -65,7 +65,7 @@ let dataAccessManager = Object.create({
    */
   loadUsers: function(callback){
     this._runningQueryCount++;
-    dbPool.query('SELECT id, tag FROM `user`', function(error, results){
+    dbPool.query('SELECT id, tag, can_read, can_write, is_admin FROM `user`', function(error, results){
       this._runningQueryCount--;
       this.users = mapDbToDam(results);
       callback && callback(this.users);
@@ -184,22 +184,62 @@ let dataAccessManager = Object.create({
    * @param callback
    */
   createUser: function(data, callback) {
-    validateUserData(data, function(err, success) {
+    validateUserData(data, async function(err, success) {
       if (err.length || !success) {
         callback(err, false);
       }
 
-      let bcrypt = require('bcrypt');
-      bcrypt.hash(data.password, 12, function(error, hash) {
-        if (error) {
-          throw error;
-        }
-
-        dbPool.query('INSERT INTO user(tag, password) VALUES (?, ?)', [data.tag, hash], function (error, results, fields) {
-          if (error) throw error;
-        });
+      data.password = await this.hashPassword(data.password);
+      dbPool.query('INSERT INTO user(tag, password) VALUES (?, ?)', [data.tag, data.password], function (error, results, fields) {
+        if (error) throw error;
         callback(err, true);
         changedDatasets.add('users');
+      });
+    }.bind(this));
+  },
+
+  updateUser: async function(user, data) {
+    return new Promise(async function (resolve, reject) {
+      let dataKeys;
+      let updateString = '';
+      let updateValues = [];
+      // Only keep the fields existing on the user objects.
+      data = _.pickBy(data, function(value, key) {
+          return user.hasOwnProperty(key);
+      });
+      dataKeys = Object.keys(data);
+      if (data.password) {
+          data.password = await this.hashPassword(data.password)
+      }
+
+      for (let i = 0; i < dataKeys.length; i++) {
+          if (i !== 0) {
+            updateString += ',';
+          }
+          updateString += dataKeys[i] + '= ?';
+          updateValues.push(data[dataKeys[i]]);
+      }
+      dbPool.query('UPDATE user SET ' + updateString + ' WHERE id = ?', updateValues.concat([user.id]), function (error, results, fields) {
+          if (error) throw error;
+          changedDatasets.add('users');
+          resolve(true);
+      });
+    }.bind(this));
+  },
+
+  /**
+  * @param password
+  * @returns {Promise<any>}
+  */
+  hashPassword: async function(password) {
+    return new Promise(function(resolve, reject) {
+      let bcrypt = require('bcrypt');
+      bcrypt.hash(password, 12, function(error, hash) {
+          if (error) {
+              throw error;
+          }
+
+          resolve(hash);
       });
     });
   },
