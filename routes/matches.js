@@ -12,17 +12,16 @@ router.get('/', function(req, res) {
   res.json(dam.matches.order('id').page(pageSize, page));
 });
 
-router.post('/data/add', function(req, res) {
+router.post('/data/add', async function(req, res) {
   let data = req.body;
 
-  dam.addMatchData(data, function(err, success){
-    if (!err.length && success) {
-      res.json({success: true});
-    }
-    else {
-      res.json({success: false, errors: err});
-    }
-  });
+  try {
+      let success = await dam.addMatchData(data);
+      res.json({success: success});
+  }
+  catch(err) {
+    res.json({success: false, error: err.message});
+  }
 });
 
 router.get('/data/add', function(req, res) {
@@ -80,7 +79,7 @@ router.post('/add', async function(req, res) {
       res.json({success: success});
   }
   catch (error) {
-      res.json({success: false, errors: error.message});
+      res.json({success: false, error: error.message});
   }
 });
 

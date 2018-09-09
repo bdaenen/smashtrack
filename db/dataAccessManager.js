@@ -154,7 +154,12 @@ let dataAccessManager = Object.create({
         data.players.forEach(async function(dataPlayer){
             dataPlayer.match_id = match.id;
             let player = await savePlayer(dataPlayer);
+
             if (player.data) {
+                if (data.data.constructor !== Object) {
+                    throw new Error('Badly structured data.');
+                }
+
                 Object.keys(dataPlayer.data).forEach(async function(key){
                     let data = {
                         key: key,
@@ -162,6 +167,9 @@ let dataAccessManager = Object.create({
                         player_id: player.id
                     };
                     if (!data.key || !data.value || !data.player_id) {throw new Error('Invalid data provided for player ' + player.id);}
+                    if (typeof data.value === 'object') {
+                        throw new Error('Nested objects are not (yet) implemented.');
+                    }
 
                     await savePlayerData(data);
                 }, this);
@@ -198,40 +206,35 @@ let dataAccessManager = Object.create({
 
   /**
    * @param data
-   * @param callback
    */
-  addMatchData: function (data, callback) {
-    let errors = [];
-    if (this.matches.filter({'match.id': data.match_id}).length) {
-      errors.push({msg: 'This match does not exist.'});
+  addMatchData: async function (data) {
+    if (!this.matches.filter({'match.id': data.match_id}).length) {
+      throw new Error('This match does not exist.');
     }
 
-    let matchDataSaving = 0;
-    let stop = false;
+    if (data.data.constructor !== Object) {
+        throw new Error('Badly structured data.');
+    }
 
     let keys = Object.keys(data.data);
     for (let i = 0, l = keys.length; i < l; i++) {
-      if(stop){break;}
-
       let key = keys[i];
+      let val = data.data[key];
+
+      if (typeof val === 'object') {
+          throw new Error('Nested objects are not (yet) implemented.');
+      }
+
       let matchData = {
         match_id: data.match_id,
         key: key,
-        value: data.data[key]
+        value: val
       };
 
-      matchDataSaving++;
-      saveMatchData(matchData, function(err, matchData) {
-        matchDataSaving--;
-        if (err.length || !matchData.id) {
-          stop = true;
-          callback(err, false);
-        }
-        else if (matchDataSaving <= 0) {
-          callback(err, true);
-        }
-      }.bind(this))
+      await saveMatchData(matchData);
     }
+
+    return true;
   }
 });
 
@@ -242,17 +245,17 @@ dataAccessManager.users = null;
 /**
  * @type {null|DbSet}
  */
-dataAccessManager.stages= null;
+dataAccessManager.stages = null;
 /**
  * @type {null|DbSet}
  */
-dataAccessManager.characters= null;
+dataAccessManager.characters = null;
 /**
  * @type {null|DbSet}
  */
-dataAccessManager.teams= null;
-dataAccessManager._runningQueryCount= 0;
-dataAccessManager.isReady= function(){
+dataAccessManager.teams = null;
+dataAccessManager._runningQueryCount = 0;
+dataAccessManager.isReady = function(){
   return this._runningQueryCount === 0;
 };
 /**
@@ -318,6 +321,7 @@ function savePlayer(data) {
 
 /**
  * @param data
+ * @returns {Promise}
  */
 function savePlayerData(data) {
   return new Promise(function(resolve, reject) {
@@ -330,7 +334,7 @@ function savePlayerData(data) {
       ],
       function(sqlerr, results, fields) {
         if (sqlerr) {
-          reject(sqlerr);
+          throw sqlerr;
         }
         data.id = results.insertId;
         changedDatasets.add('matches');
@@ -340,30 +344,25 @@ function savePlayerData(data) {
   });
 }
 
-function saveMatchData(data, callback) {
-  dbPool.query(
-    'INSERT INTO `match_data` (`match_id`, `key`, `value`) VALUES (?, ?, ?)',
-    [data.match_id, data.key, data.value],
-    function(sqlerr, results, fields) {
-      sqlerr = sqlerr ? [sqlerr] : [];
-      data.id = results.insertId;
-      callback(sqlerr, data);
-      changedDatasets.add('matches');
-    }
-  )
-}
-
-function saveMatchMetadata(data, callback) {
-  dbPool.query(
-    'INSERT INTO `match_metadata` (`match_id`, `metadata_id`) VALUES (?, ?)',
-    [data.match_id, data.metadata_id],
-    function(sqlerr, results, fields) {
-      sqlerr = sqlerr ? [sqlerr] : [];
-      data.id = results.insertId;
-      callback(sqlerr, data);
-      changedDatasets.add('matches');
-    }
-  )
+/**
+ * @param data
+ * @returns {Promise}
+ */
+function saveMatchData(data) {
+    return new Promise(function(resolve, reject){
+        dbPool.query(
+          'INSERT INTO `match_data` (`match_id`, `key`, `value`) VALUES (?, ?, ?)',
+          [data.match_id, data.key, data.value],
+          function(sqlerr, results, fields) {
+              if (sqlerr) {
+                  throw sqlerr;
+              }
+              data.id = results.insertId;
+              changedDatasets.add('matches');
+              resolve(data);
+          }
+        )
+    });
 }
 
 /**
@@ -455,16 +454,6 @@ function validateMatchData(data){
       }
 
       return true;
-}
-
-// TODO: check on length? Is always valid as it's just an object.
-function validateMetadata(data, callback) {
-  if (data) {
-    callback([], true);
-  }
-  else {
-    callback([{msg: 'Missing metadata', param: 'metadata'}], false)
-  }
 }
 
 /**
