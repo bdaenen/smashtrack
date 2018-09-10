@@ -156,11 +156,11 @@ let dataAccessManager = Object.create({
             let player = await savePlayer(dataPlayer);
 
             if (player.data) {
-                if (data.data.constructor !== Object) {
+                if (player.data.constructor !== Object) {
                     throw new Error('Badly structured data.');
                 }
 
-                Object.keys(dataPlayer.data).forEach(async function(key){
+                Object.keys(player.data).forEach(async function(key){
                     let data = {
                         key: key,
                         value: dataPlayer.data[key],
