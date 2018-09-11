@@ -86,7 +86,6 @@ passport.use(new LocalStrategy({
       }
       bcrypt.compare(password, user.password, function(error, result) {
         if (result) {
-          console.log(user.tag, 'just logged in.');
           done(null, user);
         }
         else {
@@ -116,12 +115,29 @@ app.post('/login', function(req, res, next){
     if (!user) {
       return res.json({authenticated: !!user});
     }
-    req.logIn(user, function(err) {
-      if (err) {
-        return next(err);
-      }
-      return res.json({authenticated: !!user, user: {id: user.id, tag: user.tag} || {}});
-    });
+    else {
+        let dbPool = require('./db/db');
+        dbPool.query('SELECT * FROM user_allowed_origin WHERE user_id = ?', [user.id], function(error, results, fields) {
+          let originMatches = false;
+          for (let i = 0; i < results.length; i++) {
+            if (results[i].origin === req.headers.origin) {
+              originMatches = true;
+            }
+          }
+          if (!results.length || originMatches) {
+              req.logIn(user, function(err) {
+                  if (err) {
+                      return next(err);
+                  }
+                  return res.json({authenticated: !!user, user: {id: user.id, tag: user.tag} || {}});
+              });
+          }
+          else {
+            console.log(user.tag, 'just logged in.');
+            return res.json({success: false, error: 'User is not allowed to log in from this origin.'});
+          }
+        });
+    }
   })(req, res, next);
 });
 
