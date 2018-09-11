@@ -90,7 +90,6 @@ passport.use(new LocalStrategy({
           done(null, user);
         }
         else {
-          // result.json({authenticated: false}); //what's this?
           done(null);
         }
       });

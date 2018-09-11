@@ -23,6 +23,7 @@ router.post('/data/add', async function(req, res) {
         res.json({success: success});
     }
     catch(err) {
+        res.status(400);
         res.json({success: false, error: err.message});
     }
 });
@@ -41,6 +42,7 @@ router.post('/', function(req, res) {
     let page = Math.abs(parseInt(data.page, 10)) || 1;
 
     if (!filters) {
+        res.status(400);
         res.json({success: false, errors: {msg: 'Missing data', param: 'filters'}})
     }
 
@@ -85,6 +87,7 @@ router.post('/add', async function(req, res) {
         res.json({success: success});
     }
     catch (error) {
+        res.status(400);
         res.json({success: false, error: error.message});
     }
 });

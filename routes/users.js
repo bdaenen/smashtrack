@@ -26,6 +26,7 @@ router.get('/:id(\\d+)', function(req, res) {
 
 router.post('/change_password', async function(req, res) {
     if (!req.body || !req.body.password) {
+        res.status(400);
         return res.json({success: false, error: 'A password is required!'});
     }
     try {
@@ -33,6 +34,7 @@ router.post('/change_password', async function(req, res) {
         res.json({success: success});
     }
     catch (error) {
+        res.status(400);
         res.json({success: false, error: error.message});
     }
 });

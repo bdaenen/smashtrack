@@ -10,7 +10,8 @@ router.get('/', function(req, res, next) {
           '/matches',
           '/stages',
           '/teams',
-          '/users'
+          '/users',
+          '/admin'
       ]
   });
 });
