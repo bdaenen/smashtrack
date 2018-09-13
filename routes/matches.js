@@ -10,8 +10,10 @@ router.get('/', function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
     let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
     let page = Math.abs(parseInt(req.query.page, 10) || 1);
+    let order = req.query.sort || 'id';
+    let orderDir = req.query.direction || 'asc';
 
-    res.json(dam.matches.order('id').page(pageSize, page));
+    res.json(dam.matches.order(order, orderDir).page(pageSize, page));
 });
 
 router.post('/data/add', async function(req, res) {
