@@ -1,37 +1,13 @@
-Example JSON for adding matches:
+## Smashtrack
+WIP API for tracking Super Smash Bros. matches.
 
-```json
+### Implemented
+ - Basic authentication and permissions
+ - Endpoints for creating matches and users
+ - Endpoints for reading users, match(es) (and their results), stages, and characters
+ - Basic filtering and sorting on endpoints
 
-{
-	"match":{
-		"is_team": false,
-		"date": "2018-07-14T12:21:50.193Z",
-		"stocks": 3,
-		"time": "00:06:00",
-		"time_remaining": "00:02:14",
-		"stage_id": 1,
-		"author_user_id": 1
-	},
-	"players":[
-		{
-			"user_id": 1,
-			"character_id": 1,
-			"team_id": null,
-			"is_winner": true,
-			"data": {
-				"stocks": 2
-			}
-		},
-		{
-			"user_id": 2,
-			"character_id": 2,
-			"team_id": null,
-			"is_winner": false,
-			"data": {
-				"stocks": 1
-			}
-		}
-	]
-}
-
-``` 
+### Todo
+ - Endpoints for creating stages and characters
+ - Allow users to have multiple tags
+ - Allow matches to be segmented into certain categories/tournaments/...
