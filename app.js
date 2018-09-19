@@ -16,7 +16,7 @@ let adminRouter = require('./routes/admin');
 
 let passport = require('passport');
 let LocalStrategy = require('passport-local').Strategy;
-let session = require("express-session");
+let session = require('express-session');
 
 let app = express();
 
@@ -26,14 +26,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.disable('x-powered-by');
 
 // Sessions
 app.use(session({
   secret: "munK84xMJp6pe693kTJcbKqB",
   resave: true,
+  name: 'smashtracker',
   saveUninitialized: false,
   cookie : {
-    maxAge: 60*60*48*1000
+    maxAge: 60*60*48*1000,
+    secure: true,
+    httpOnly: true,
+    domain: 'smashtrack.benn0.be'
   }
 }));
 //app.use(flash());
