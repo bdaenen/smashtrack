@@ -36,9 +36,9 @@ app.use(session({
   saveUninitialized: false,
   cookie : {
     maxAge: 60*60*48*1000,
-    secure: true,
+    secure: parseInt(process.env.IS_HTTPS),
     httpOnly: true,
-    domain: 'smashtrack.benn0.be'
+    domain: process.env.DOMAIN
   }
 }));
 //app.use(flash());
@@ -65,13 +65,17 @@ app.options("/*", function(req, res, next){
   res.sendStatus(200);
 });
 
-// Don't require a login on dev, otherwise always do.
+// Don't require a login on dev, otherwise always do + domain check.
 if (process.argv.indexOf('dev=1') === -1) {
-  app.use(function(req, res, next) {
-    if (req.url === '/login' || req.isAuthenticated()) {
+  app.use(async function(req, res, next) {
+    let permissions = require('./lib/permissions');
+    if (req.url === '/login' || (req.isAuthenticated() && await permissions.isUserValidForDomain(req.user, req.headers.origin))) {
       next();
     }
     else {
+      if (req.isAuthenticated()) {
+        req.logout();
+      }
       res.redirect('/login');
     }
   });
@@ -113,7 +117,7 @@ passport.deserializeUser(function(id, done) {
 
 // Moving this to the login router breaks stuff...?
 app.post('/login', function(req, res, next){
-  passport.authenticate('local', function (err, user, info) {
+  passport.authenticate('local', async function (err, user, info) {
     if (err) {
       return next(err);
     }
@@ -121,27 +125,21 @@ app.post('/login', function(req, res, next){
       return res.json({authenticated: !!user});
     }
     else {
-        let dbPool = require('./db/db');
-        dbPool.query('SELECT * FROM user_allowed_origin WHERE user_id = ?', [user.id], function(error, results, fields) {
-          let originMatches = false;
-          for (let i = 0; i < results.length; i++) {
-            if (results[i].origin === req.headers.origin) {
-              originMatches = true;
-            }
+      let permissions = require('./lib/permissions');
+      let allowUserLogin = true;// await permissions.isUserValidForDomain(user, req.headers.origin);
+      console.log(allowUserLogin);
+      if (allowUserLogin) {
+        console.log('logging in!');
+        req.logIn(user, function(err) {
+          if (err) {
+            return next(err);
           }
-          if (!results.length || originMatches) {
-              req.logIn(user, function(err) {
-                  if (err) {
-                      return next(err);
-                  }
-                  return res.json({authenticated: !!user, user: {id: user.id, tag: user.tag} || {}});
-              });
-          }
-          else {
-            console.log(user.tag, 'just logged in.');
-            return res.json({success: false, error: 'User is not allowed to log in from this origin.'});
-          }
+          return res.json({authenticated: !!user, user: {id: user.id, tag: user.tag} || {}});
         });
+      }
+      else {
+        return res.json({success: false, error: 'User is not allowed to log in from this origin.'});
+      }
     }
   })(req, res, next);
 });
