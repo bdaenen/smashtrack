@@ -33,7 +33,7 @@ let sessionStore = new MySQLStore({
     clearExpired: true,
     checkExpirationInterval: 900000,
     // 30 days
-    expiration: 60 * 60 * 24 * 30 * 1000,
+    expiration: 60*60*24*30*1000,
     createDatabaseTable: true,
     endConnectionOnClose: false,
     schema: {
