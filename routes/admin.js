@@ -67,4 +67,26 @@ router.post('/users/delete', function(req, res) {
     res.json({error: 'not yet implemented'});
 });
 
+router.post('/users/update', async function(req, res) {
+    let data = req.body;
+    if (!data || !data.user_id || !data.data) {
+        res.status(400);
+        return res.json({success: false, error: 'No data was provided, or it was badly structured.'});
+    }
+    try {
+        let user = dam.users.filter({id: data.user_id});
+        if (!user.length) {
+            res.status(400);
+            return res.json({success: false, error: 'No user found with the given ID.'});
+        }
+
+        let success = await dam.updateUser(user.first(), data.data);
+        res.json({success: success});
+    }
+    catch (error) {
+        res.status(400);
+        res.json({success: false, error: error.message});
+    }
+});
+
 module.exports = router;

@@ -12,6 +12,7 @@
     "debug": "~2.6.9",
     "dotenv": "^6.0.0",
     "express": "~4.16.0",
+    "express-mysql-session": "^2.0.1",
     "express-session": "^1.15.6",
     "express-validator": "^5.2.0",
     "hbs": "~4.0.1",

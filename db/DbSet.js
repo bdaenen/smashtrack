@@ -174,4 +174,8 @@ DbSet.prototype.toString = function() {
   return this.dataset.toString();
 };
 
+DbSet.prototype.first = function() {
+  return this.dataset[0];
+};
+
 module.exports = DbSet;
