@@ -32,4 +32,13 @@ router.get('/error', function(req, res, next) {
   })
 });
 
+router.all('/logout', function (req, res, next) {
+    let userName = req.user.tag;
+    req.logout();
+    res.json({
+        success: true,
+        message: `See you later, ${userName}!`
+    });
+});
+
 module.exports = router;
