@@ -97,6 +97,33 @@ router.post('/add', async function(req, res) {
 /**
  *
  */
+router.post('/edit', async function(req, res){
+    if (!permissions.checkWritePermission(req, res)){return}
+
+    let data = req.body;
+    let matchId = req.body.match_id;
+    if (!data || !data.data || !matchId) {
+        res.status(400);
+        return res.json({success: false, error: 'No data was provided, or it was badly structured.'});
+    }
+
+    if (data.data.author_user_id) {
+        res.status(400);
+        res.json({success: false, error: 'An existing match cannot have its author changed.'});
+    }
+
+    let match = dam.matches.filter({id: matchId}).first();
+    if (!match) {
+        res.status(400);
+        res.json({success: false, error: 'The given match does not exist.'});
+    }
+
+    let success = await dam.updateMatch(match, data.data);
+});
+
+/**
+ *
+ */
 router.get('/add', function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
     res.json({structure: require('../db/structure/addMatch')});

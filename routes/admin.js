@@ -67,7 +67,11 @@ router.post('/users/delete', function(req, res) {
     res.json({error: 'not yet implemented'});
 });
 
+/**
+ * Update a user.
+ */
 router.post('/users/update', async function(req, res) {
+    if(!permissions.checkAdminPermission(req, res)){return}
     let data = req.body;
     if (!data || !data.user_id || !data.data) {
         res.status(400);

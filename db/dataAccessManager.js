@@ -179,6 +179,32 @@ let dataAccessManager = Object.create({
         return true;
     },
 
+    updateMatch: async function(match, data) {
+        return new Promise(async function (resolve, reject) {
+            let dataKeys;
+            let updateString = '';
+            let updateValues = [];
+            // Only keep the fields existing on the match objects.
+            data = _.pickBy(data, function(value, key) {
+                return match.hasOwnProperty(key);
+            });
+            dataKeys = Object.keys(data);
+
+            for (let i = 0; i < dataKeys.length; i++) {
+                if (i !== 0) {
+                    updateString += ',';
+                }
+                updateString += dataKeys[i] + '= ?';
+                updateValues.push(data[dataKeys[i]]);
+            }
+            dbPool.query('UPDATE match SET ' + updateString + ' WHERE id = ?', updateValues.concat([match.id]), function (error, results, fields) {
+                if (error) throw error;
+                changedDatasets.add('users');
+                resolve(true);
+            });
+        }.bind(this));
+    },
+
   /**
    * @param data
    * @param callback
@@ -308,27 +334,52 @@ dataAccessManager.emitter= new Emitter();
  */
 function saveMatch(data) {
   return new Promise(function(resolve, reject){
-    dbPool.query(
-      'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        data.date || null,
-        data.stocks,
-        data.stage_id,
-        data.time || null,
-        data.time_remaining || null,
-        +!!data.is_team,
-        data.author_user_id
-      ],
-      function(sqlerr, results, fields){
-        if (sqlerr) {
-          throw sqlerr;
-        }
+      if (!data.id) {
+        dbPool.query(
+          'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [
+            data.date || null,
+            data.stocks,
+            data.stage_id,
+            data.time || null,
+            data.time_remaining || null,
+            +!!data.is_team,
+            data.author_user_id
+          ],
+          function(sqlerr, results, fields){
+            if (sqlerr) {
+              throw sqlerr;
+            }
 
-        data.id = results.insertId;
-        changedDatasets.add('matches');
-        resolve(data);
+            data.id = results.insertId;
+            changedDatasets.add('matches');
+            resolve(data);
+          }
+        );
       }
-    );
+      else {
+          dbPool.query(
+            'UPDATE `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id)  (?, ?, ?, ?, ?, ?, ?)',
+            [
+                data.date || null,
+                data.stocks,
+                data.stage_id,
+                data.time || null,
+                data.time_remaining || null,
+                +!!data.is_team,
+                data.author_user_id
+            ],
+            function(sqlerr, results, fields){
+                if (sqlerr) {
+                    throw sqlerr;
+                }
+
+                data.id = results.insertId;
+                changedDatasets.add('matches');
+                resolve(data);
+            }
+          );
+      }
   });
 }
 
