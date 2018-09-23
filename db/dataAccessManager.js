@@ -181,27 +181,8 @@ let dataAccessManager = Object.create({
 
     updateMatch: async function(match, data) {
         return new Promise(async function (resolve, reject) {
-            let dataKeys;
-            let updateString = '';
-            let updateValues = [];
-            // Only keep the fields existing on the match objects.
-            data = _.pickBy(data, function(value, key) {
-                return match.hasOwnProperty(key);
-            });
-            dataKeys = Object.keys(data);
-
-            for (let i = 0; i < dataKeys.length; i++) {
-                if (i !== 0) {
-                    updateString += ',';
-                }
-                updateString += dataKeys[i] + '= ?';
-                updateValues.push(data[dataKeys[i]]);
-            }
-            dbPool.query('UPDATE match SET ' + updateString + ' WHERE id = ?', updateValues.concat([match.id]), function (error, results, fields) {
-                if (error) throw error;
-                changedDatasets.add('users');
-                resolve(true);
-            });
+            data.id = match.match.id;
+            saveMatch(data);
         }.bind(this));
     },
 
@@ -225,32 +206,11 @@ let dataAccessManager = Object.create({
   },
 
   updateUser: async function(user, data) {
-    return new Promise(async function (resolve, reject) {
-      let dataKeys;
-      let updateString = '';
-      let updateValues = [];
-      // Only keep the fields existing on the user objects.
-      data = _.pickBy(data, function(value, key) {
-          return user.hasOwnProperty(key);
-      });
-      dataKeys = Object.keys(data);
       if (data.password) {
           data.password = await this.hashPassword(data.password)
       }
 
-      for (let i = 0; i < dataKeys.length; i++) {
-          if (i !== 0) {
-            updateString += ',';
-          }
-          updateString += dataKeys[i] + '= ?';
-          updateValues.push(data[dataKeys[i]]);
-      }
-      dbPool.query('UPDATE user SET ' + updateString + ' WHERE id = ?', updateValues.concat([user.id]), function (error, results, fields) {
-          if (error) throw error;
-          changedDatasets.add('users');
-          resolve(true);
-      });
-    }.bind(this));
+      return updateRecord('user', user, data);
   },
 
   /**
@@ -358,29 +318,66 @@ function saveMatch(data) {
         );
       }
       else {
-          dbPool.query(
-            'UPDATE `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id)  (?, ?, ?, ?, ?, ?, ?)',
-            [
-                data.date || null,
-                data.stocks,
-                data.stage_id,
-                data.time || null,
-                data.time_remaining || null,
-                +!!data.is_team,
-                data.author_user_id
-            ],
-            function(sqlerr, results, fields){
-                if (sqlerr) {
-                    throw sqlerr;
-                }
-
-                data.id = results.insertId;
-                changedDatasets.add('matches');
-                resolve(data);
-            }
-          );
+        let match = dataAccessManager.matches.filter({'match.id': data.id}).first();
+        if (data.match.time) {
+          data.match.match_time = data.match.time;
+        }
+        if (data.match.time_remaining) {
+          data.match.match_time_remaining = data.match.time_remaining;
+        }
+        updateRecord('match', match.match, data.match);
       }
   });
+}
+
+/**
+ * @param table
+ * @param dbRow
+ * @param data
+ * @returns {Promise<any>}
+ */
+function updateRecord(table, dbRow, data) {
+  return new Promise(function(resolve, reject){
+    let dataKeys;
+    let updateString = '';
+    let updateValues = [];
+    // Only keep the fields existing on the match objects.
+    data = _.pickBy(data, function(value, key) {
+      // TODO: refactor "match_time" in DB to "time".
+      return dbRow.hasOwnProperty(key);
+    });
+    console.log(data, dbRow);
+    dataKeys = Object.keys(data);
+
+    for (let i = 0; i < dataKeys.length; i++) {
+      if (i !== 0) {
+        updateString += ',';
+      }
+      updateString += dataKeys[i] + '= ?';
+      updateValues.push(data[dataKeys[i]]);
+    }
+
+    dbPool.query('UPDATE `' + table + '` SET ' + updateString + ' WHERE id = ?', updateValues.concat([dbRow.id]), function (error, results, fields) {
+      if (error) throw error;
+      changedDatasets.add(mapTableToObjectType(table));
+      resolve(true);
+    });
+  });
+}
+
+function mapTableToObjectType(table) {
+  switch (table) {
+    case 'match':
+      return 'matches';
+    case 'user':
+      return 'users';
+    case 'stage':
+      return 'stages';
+    case 'character':
+      return 'characters';
+    case 'team':
+      return 'teams';
+  }
 }
 
 /**

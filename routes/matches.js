@@ -97,7 +97,7 @@ router.post('/add', async function(req, res) {
 /**
  *
  */
-router.post('/edit', async function(req, res){
+router.post('/update', async function(req, res){
     if (!permissions.checkWritePermission(req, res)){return}
 
     let data = req.body;
@@ -112,7 +112,8 @@ router.post('/edit', async function(req, res){
         res.json({success: false, error: 'An existing match cannot have its author changed.'});
     }
 
-    let match = dam.matches.filter({id: matchId}).first();
+    let match = dam.matches.filter({'match.id': matchId}).first();
+    console.log(matchId);
     if (!match) {
         res.status(400);
         res.json({success: false, error: 'The given match does not exist.'});
