@@ -77,6 +77,8 @@ let dataAccessManager = Object.create({
    * @param callback
    */
   loadMatches: function(callback){
+    let matchMapper = require('./mappers/match');
+    let playerMapper = require('./mappers/player');
     this._runningQueryCount++;
     dbPool.query({nestTables: true, sql: 'SELECT * FROM player' +
       ' INNER JOIN `match` ON player.match_id = `match`.id' +
@@ -93,30 +95,21 @@ let dataAccessManager = Object.create({
         let structuredData = {};
         let finalArray = [];
 
+        // TODO: think of a better way to map data records, as now we can't cleanly use the mapper to map data.
         results.forEach(function(result){
-          let datarow = structuredData[result.match.id] = structuredData[result.match.id] || {
-            match: {
-              id: result.match.id,
-              is_team: result.match.is_team,
-              date: result.match.date.toLocaleDateString('be-nl', { year: 'numeric', month: '2-digit', day: '2-digit' }),
-              stocks: result.match.stocks,
-              time: result.match.match_time,
-              time_remaining: result.match.time_remaining,
-              stage: result.stage,
-              author_user: {id: result.author.id, tag: result.author.tag},
-              data: {}
-            },
-            players: {},
-          };
+          let datarow = structuredData[result.match.id];
+          if (!datarow) {
+            let match = matchMapper.dbToApi(result.match, result.stage, result.author);
 
-          datarow.players[result.player.id] = datarow.players[result.player.id] || {
-            id: result.player.id,
-            user: {id: result.user.id, tag: result.user.tag},
-            character: result.character,
-            team: result.team.id ? result.team : null,
-            is_winner: result.player.is_winner,
-            data: {}
-          };
+            datarow = structuredData[result.match.id] = {
+              match: match,
+              players: {},
+            };
+          }
+
+          if (!datarow.players[result.player.id]) {
+           datarow.players[result.player.id] = playerMapper.dbToApi(result.player, result.user, result.character, result.team);
+          }
 
           if (result.player_data && result.player_data.id) {
             datarow.players[result.player.id].data[result.player_data.key] = result.player_data.value;
@@ -139,21 +132,24 @@ let dataAccessManager = Object.create({
     }.bind(this));
   },
 
-    /**
-     * @param data
-     */
-    createMatch: async function(data){
+  /**
+   * @param data
+   * @param connection
+   * @returns {Promise<boolean>}
+   */
+    createMatch: async function(data, connection){
         // Throws an error if it does not validate.
         let validates = await validateMatchData(data);
+        let dbPool = connection || dbPool;
 
         if (!validates) {
           return false;
         }
 
-        let match = await saveMatch(data.match);
+        let match = await saveMatch(data.match, dbPool);
         data.players.forEach(async function(dataPlayer){
             dataPlayer.match_id = match.id;
-            let player = await savePlayer(dataPlayer);
+            let player = await savePlayer(dataPlayer, dbPool);
 
             if (player.data) {
                 if (player.data.constructor !== Object) {
@@ -171,7 +167,7 @@ let dataAccessManager = Object.create({
                         throw new Error('Nested objects are not (yet) implemented.');
                     }
 
-                    await savePlayerData(data);
+                    await savePlayerData(data, dbPool);
                 }, this);
             }
         }, this);
@@ -180,10 +176,27 @@ let dataAccessManager = Object.create({
     },
 
     updateMatch: async function(match, data) {
-        return new Promise(async function (resolve, reject) {
-            data.id = match.match.id;
-            saveMatch(data);
-        }.bind(this));
+      data.match.author_user_id = match.match.author_user.id;
+      let validates = await validateMatchData(data);
+
+      if (!validates) {
+        return false;
+      }
+
+      dbPool.getConnection(function(err, connection){
+        if (err) {throw err;}
+        connection.beginTransaction(function(err){
+          if (err) {throw err;}
+          return new Promise(async function (resolve, reject) {
+            try {
+              //deleteMatch(match.match.id, connection);
+              this.createMatch(data, connection);
+            } catch(err) {
+              connection.rollback(function(){connection.release();})
+            }
+          }.bind(this));
+        });
+      });
     },
 
   /**
@@ -291,42 +304,48 @@ dataAccessManager.emitter= new Emitter();
 
 /**
  * @param data
+ * @param connection
+ * @returns {Promise<any>}
  */
-function saveMatch(data) {
+function saveMatch(data, connection) {
+  let dbPool = connection || dbPool;
   return new Promise(function(resolve, reject){
-      if (!data.id) {
-        dbPool.query(
-          'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [
-            data.date || null,
-            data.stocks,
-            data.stage_id,
-            data.time || null,
-            data.time_remaining || null,
-            +!!data.is_team,
-            data.author_user_id
-          ],
-          function(sqlerr, results, fields){
-            if (sqlerr) {
-              throw sqlerr;
-            }
+    let query = 'INSERT INTO `match` (';
+    let params = [
+      data.date || null,
+      data.stocks,
+      data.stage_id,
+      data.time || null,
+      data.time_remaining || null,
+      +!!data.is_team,
+      data.author_user_id
+    ];
+    if (data.id) {
+      query += '`id`, ';
+      params.unshift(data.id);
+    }
+    query += 'stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id';
+    query += ') VALUES (';
+    if (data.id) {
+      query += '?, ';
+    }
+    query += '?, ?, ?, ?, ?, ?, ?)';
+console.log(query);
+console.log(params + '');
+throw Error('wololo');
+    dbPool.query(
+      query,
+      params,
+      function(sqlerr, results, fields){
+        if (sqlerr) {
+          throw sqlerr;
+        }
 
-            data.id = results.insertId;
-            changedDatasets.add('matches');
-            resolve(data);
-          }
-        );
+        data.id = results.insertId;
+        changedDatasets.add('matches');
+        resolve(data);
       }
-      else {
-        let match = dataAccessManager.matches.filter({'match.id': data.id}).first();
-        if (data.match.time) {
-          data.match.match_time = data.match.time;
-        }
-        if (data.match.time_remaining) {
-          data.match.match_time_remaining = data.match.time_remaining;
-        }
-        updateRecord('match', match.match, data.match);
-      }
+    );
   });
 }
 
@@ -337,13 +356,15 @@ function saveMatch(data) {
  * @returns {Promise<any>}
  */
 function updateRecord(table, dbRow, data) {
+  if (!dbRow.id) {
+    throw Error('Cannot update a record without an id!');
+  }
   return new Promise(function(resolve, reject){
     let dataKeys;
     let updateString = '';
     let updateValues = [];
     // Only keep the fields existing on the match objects.
     data = _.pickBy(data, function(value, key) {
-      // TODO: refactor "match_time" in DB to "time".
       return dbRow.hasOwnProperty(key);
     });
     console.log(data, dbRow);
@@ -365,6 +386,48 @@ function updateRecord(table, dbRow, data) {
   });
 }
 
+function deleteMatch(matchId, connection) {
+  let match = dataAccessManager.matches.filter({id: matchId});
+  let dbPool = connection || dbPool;
+
+  if (!match) {
+    throw Error('Match with id ' + matchId + ' does not exist!');
+  }
+
+
+  dbPool.query(
+    'SELECT player_data.id ' +
+    'FROM `player_data` ' +
+    'INNER JOIN `player` ON `player`.id = `player_data`.player_id AND `player`.match_id = ?',
+    [matchId],
+    function(sqlerr, results) {
+      let playerDataIds = [];
+      results.forEach(function(row) {
+        playerDataIds.push(row.id);
+      });
+      dbPool.query('DELETE FROM player_data WHERE id IN (?)', [playerDataIds.join(',')], function(sqlerr){
+        if (sqlerr) {
+          throw sqlerr;
+        }
+        dbPool.query('DELETE FROM `player` WHERE match_id = ?', [matchId], function(sqlerr){
+          if (sqlerr) {
+            throw sqlerr;
+          }
+          dbPool.query('DELETE FROM `match_data` WHERE match_id = ?', [matchId], function(sqlerr){
+            if (sqlerr) {
+              throw sqlerr;
+            }
+            dbPool.query('DELETE FROM `match` WHERE id = ?', [matchId]);
+          });
+        });
+      });
+    }
+  );
+  //
+  //dbPool.query('DELETE FROM `player` WHERE match_id = ?', [matchId]);
+
+}
+
 function mapTableToObjectType(table) {
   switch (table) {
     case 'match':
@@ -383,7 +446,8 @@ function mapTableToObjectType(table) {
 /**
  * @param data
  */
-function savePlayer(data) {
+function savePlayer(data, connection) {
+  let dbPool = connection || dbPool;
   return new Promise(function(resolve, reject){
       dbPool.query(
         'INSERT INTO `player` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
@@ -409,9 +473,11 @@ function savePlayer(data) {
 
 /**
  * @param data
- * @returns {Promise}
+ * @param connection
+ * @returns {Promise<any>}
  */
-function savePlayerData(data) {
+function savePlayerData(data, connection) {
+  let dbPool = connection || dbPool;
   return new Promise(function(resolve, reject) {
     dbPool.query(
       'INSERT INTO `player_data` (player_id, `key`, `value`) VALUES (?, ?, ?)',

@@ -109,14 +109,13 @@ router.post('/update', async function(req, res){
 
     if (data.data.author_user_id) {
         res.status(400);
-        res.json({success: false, error: 'An existing match cannot have its author changed.'});
+        return res.json({success: false, error: 'An existing match cannot have its author changed.'});
     }
 
     let match = dam.matches.filter({'match.id': matchId}).first();
-    console.log(matchId);
     if (!match) {
         res.status(400);
-        res.json({success: false, error: 'The given match does not exist.'});
+        return res.json({success: false, error: 'The given match does not exist.'});
     }
 
     let success = await dam.updateMatch(match, data.data);
