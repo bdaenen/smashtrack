@@ -13,6 +13,7 @@ let charactersRouter = require('./routes/characters');
 let stagesRouter = require('./routes/stages');
 let teamsRouter = require('./routes/teams');
 let adminRouter = require('./routes/admin');
+let devRouter = require('./routes/dev');
 
 let passport = require('passport');
 let LocalStrategy = require('passport-local').Strategy;
@@ -29,6 +30,8 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.disable('x-powered-by');
 
+let { Model, db} = require('./db/db');
+
 let sessionStore = new MySQLStore({
     clearExpired: true,
     checkExpirationInterval: 900000,
@@ -44,7 +47,7 @@ let sessionStore = new MySQLStore({
             data: 'data'
         }
     }
-}, require('./db/db'));
+}, db);
 
 // Sessions
 app.use(session({
@@ -104,23 +107,15 @@ if (process.argv.indexOf('dev=1') === -1) {
 passport.use(new LocalStrategy({
     usernameField: 'tag',
   },
-  function(username, password, done) {
-    let dbPool = require('./db/db');
-    let bcrypt = require('bcrypt');
-    dbPool.query('SELECT * FROM user WHERE tag = ?', [username], function(error, results, fields) {
-      let user = results[0];
-      if (!user) {
-        return done(null);
-      }
-      bcrypt.compare(password, user.password, function(error, result) {
-        if (result) {
-          done(null, user);
-        }
-        else {
-          done(null);
-        }
-      });
-    });
+  async function(username, password, done) {
+    let User = require('./db/models/User');
+    let user = await User.query().first().where('tag', '=', username);
+    if (await user.verifyPassword(password)) {
+      return done(null, user);
+    }
+    else {
+      done(null);
+    }
   }
 ));
 
@@ -129,7 +124,7 @@ passport.serializeUser(function(user, done) {
   done(null, user.id);
 });
 passport.deserializeUser(function(id, done) {
-  require('./db/db').query('SELECT * FROM user WHERE id = ?', [id], function(error, results, fields){
+  db.query('SELECT * FROM user WHERE id = ?', [id], function(error, results, fields){
     done(error, results[0]);
   });
 });
@@ -172,6 +167,7 @@ app.use('/characters', charactersRouter);
 app.use('/stages', stagesRouter);
 app.use('/teams', teamsRouter);
 app.use('/admin', adminRouter);
+app.use('/dev', devRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

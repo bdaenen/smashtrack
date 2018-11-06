@@ -13,7 +13,7 @@ class Stage extends BaseModel {
 
         return {
             matches: {
-                relation: Model.HasManyRelation,
+                relation: BaseModel.HasManyRelation,
                 // The related model. This can be either a Model
                 // subclass constructor or an absolute file path
                 // to a module that exports one.

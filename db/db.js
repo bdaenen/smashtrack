@@ -30,4 +30,4 @@ const knex = Knex({
 // Give the knex object to objection.
 Model.knex(knex);
 
-module.exports = Model;
+module.exports = { Model: Model, db: dbPool };

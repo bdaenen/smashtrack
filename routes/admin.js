@@ -31,19 +31,18 @@ router.get('/cc', function(req, res) {
 /**
  * Add a user.
  */
-router.post('/users/add', function(req, res) {
+router.post('/users/add', async function(req, res) {
     if(!permissions.checkAdminPermission(req, res)){return}
     let data = req.body;
     try {
-        dam.createUser(data, function(err, success) {
-            if (!err.length && success) {
-                res.json({success: true});
-            }
-            else {
-                res.status(400);
-                res.json({success: false, errors: err});
-            }
-        });
+        let user = await dam.createUser(data);
+        if (user) {
+            res.json({success: true});
+        }
+        else {
+            res.status(400);
+            res.json({success: false});
+        }
     }
     catch (err) {
         res.status(400);

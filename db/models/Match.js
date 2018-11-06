@@ -16,7 +16,7 @@ class Match extends BaseModel {
 
         return {
             author: {
-                relation: Model.HasOneRelation,
+                relation: BaseModel.HasOneRelation,
                 // The related model. This can be either a Model
                 // subclass constructor or an absolute file path
                 // to a module that exports one.
@@ -28,7 +28,7 @@ class Match extends BaseModel {
             },
 
             stage: {
-                relation: Model.HasOneRelation,
+                relation: BaseModel.HasOneRelation,
                 // The related model. This can be either a Model
                 // subclass constructor or an absolute file path
                 // to a module that exports one.
@@ -40,20 +40,20 @@ class Match extends BaseModel {
             },
 
             players: {
-                relation: Model.HasManyRelation,
+                relation: BaseModel.HasManyRelation,
                 modelClass: Player,
                 join: {
                     from: 'match.id',
-                    to: 'players.matchId'
+                    to: 'player.match_id'
                 }
             },
 
             matchData: {
-                relation: Model.HasManyRelation,
+                relation: BaseModel.HasManyRelation,
                 modelClass: MatchData,
                 join: {
                     from: 'match.id',
-                    to: 'matchData.match_id'
+                    to: 'match_data.match_id'
                 }
             }
         };

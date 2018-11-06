@@ -14,7 +14,7 @@ class Character extends BaseModel {
     //
     //     return {
     //         pets: {
-    //             relation: Model.HasManyRelation,
+    //             relation: BaseModel.HasManyRelation,
     //             // The related model. This can be either a Model
     //             // subclass constructor or an absolute file path
     //             // to a module that exports one.
@@ -26,7 +26,7 @@ class Character extends BaseModel {
     //         },
     //
     //         movies: {
-    //             relation: Model.ManyToManyRelation,
+    //             relation: BaseModel.ManyToManyRelation,
     //             modelClass: Movie,
     //             join: {
     //                 from: 'persons.id',
@@ -44,7 +44,7 @@ class Character extends BaseModel {
     //         },
     //
     //         children: {
-    //             relation: Model.HasManyRelation,
+    //             relation: BaseModel.HasManyRelation,
     //             modelClass: Person,
     //             join: {
     //                 from: 'persons.id',
@@ -53,7 +53,7 @@ class Character extends BaseModel {
     //         },
     //
     //         parent: {
-    //             relation: Model.BelongsToOneRelation,
+    //             relation: BaseModel.BelongsToOneRelation,
     //             modelClass: Person,
     //             join: {
     //                 from: 'persons.parentId',

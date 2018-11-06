@@ -1,4 +1,4 @@
-const dbPool = require('./db');
+const { db } = require('./db');
 const Emitter = require('events');
 const DbSet = require('./DbSet');
 const _ = require('lodash');
@@ -26,7 +26,7 @@ let dataAccessManager = Object.create({
    */
   loadStages: function(callback){
     this._runningQueryCount++;
-    dbPool.query('SELECT id, name FROM stage', function(error, results){
+    db.query('SELECT id, name FROM stage', function(error, results){
       this._runningQueryCount--;
       this.stages = mapDbToDam(results);
       callback && callback(this.stages);
@@ -39,7 +39,7 @@ let dataAccessManager = Object.create({
    */
   loadCharacters: function(callback){
     this._runningQueryCount++;
-    dbPool.query('SELECT id, name FROM `character`', function(error, results){
+    db.query('SELECT id, name FROM `character`', function(error, results){
       this._runningQueryCount--;
       this.characters = mapDbToDam(results);
       callback && callback(this.characters);
@@ -52,7 +52,7 @@ let dataAccessManager = Object.create({
    */
   loadTeams: function(callback){
     this._runningQueryCount++;
-    dbPool.query('SELECT id, name FROM `team`', function(error, results){
+    db.query('SELECT id, name FROM `team`', function(error, results){
       this._runningQueryCount--;
       this.teams = mapDbToDam(results);
       callback && callback(this.teams);
@@ -65,7 +65,7 @@ let dataAccessManager = Object.create({
    */
   loadUsers: function(callback){
     this._runningQueryCount++;
-    dbPool.query('SELECT id, tag, can_read, can_write, is_admin FROM `user`', function(error, results){
+    db.query('SELECT id, tag, can_read, can_write, is_admin FROM `user`', function(error, results){
       this._runningQueryCount--;
       this.users = mapDbToDam(results);
       callback && callback(this.users);
@@ -78,7 +78,7 @@ let dataAccessManager = Object.create({
    */
   loadMatches: function(callback){
     this._runningQueryCount++;
-    dbPool.query({nestTables: true, sql: 'SELECT * FROM player' +
+    db.query({nestTables: true, sql: 'SELECT * FROM player' +
       ' INNER JOIN `match` ON player.match_id = `match`.id' +
       ' INNER JOIN `stage` ON `match`.stage_id = stage.id' +
       ' INNER JOIN `user` as author ON `match`.author_user_id = author.id' +
@@ -181,21 +181,24 @@ let dataAccessManager = Object.create({
 
   /**
    * @param data
-   * @param callback
    */
-  createUser: function(data, callback) {
+  createUser: function(data) {
+    // TODO: move validation to model
     validateUserData(data, async function(err, success) {
       if (err.length || !success) {
-        callback(err, false);
+        throw err;
       }
 
-      data.password = await this.hashPassword(data.password);
-      dbPool.query('INSERT INTO user(tag, password) VALUES (?, ?)', [data.tag, data.password], function (error, results, fields) {
-        if (error) throw error;
-        callback(err, true);
-        changedDatasets.add('users');
+      let User = require('./models/User');
+      let user = await User.query().insert({
+        tag: data.tag,
+        password: data.password
       });
-    }.bind(this));
+
+      changedDatasets.add('users');
+
+      return user;
+    });
   },
 
   updateUser: async function(user, data) {
@@ -219,7 +222,7 @@ let dataAccessManager = Object.create({
           updateString += dataKeys[i] + '= ?';
           updateValues.push(data[dataKeys[i]]);
       }
-      dbPool.query('UPDATE user SET ' + updateString + ' WHERE id = ?', updateValues.concat([user.id]), function (error, results, fields) {
+      db.query('UPDATE user SET ' + updateString + ' WHERE id = ?', updateValues.concat([user.id]), function (error, results, fields) {
           if (error) throw error;
           changedDatasets.add('users');
           resolve(true);
@@ -308,7 +311,7 @@ dataAccessManager.emitter= new Emitter();
  */
 function saveMatch(data) {
   return new Promise(function(resolve, reject){
-    dbPool.query(
+    db.query(
       'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [
         data.date || null,
@@ -337,7 +340,7 @@ function saveMatch(data) {
  */
 function savePlayer(data) {
   return new Promise(function(resolve, reject){
-      dbPool.query(
+      db.query(
         'INSERT INTO `player` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
         [
             data.match_id,
@@ -365,7 +368,7 @@ function savePlayer(data) {
  */
 function savePlayerData(data) {
   return new Promise(function(resolve, reject) {
-    dbPool.query(
+    db.query(
       'INSERT INTO `player_data` (player_id, `key`, `value`) VALUES (?, ?, ?)',
       [
         data.player_id,
@@ -390,7 +393,7 @@ function savePlayerData(data) {
  */
 function saveMatchData(data) {
     return new Promise(function(resolve, reject){
-        dbPool.query(
+        db.query(
           'INSERT INTO `match_data` (`match_id`, `key`, `value`) VALUES (?, ?, ?)',
           [data.match_id, data.key, data.value],
           function(sqlerr, results, fields) {
