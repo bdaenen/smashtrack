@@ -6,62 +6,66 @@ class Player extends BaseModel {
         return 'player';
     }
 
-    // // This object defines the relations to other models.
-    // static get relationMappings() {
-    //     // Import models here to prevent require loops.
-    //     const Animal = require('./Animal');
-    //     const Movie = require('./Movie');
-    //
-    //     return {
-    //         pets: {
-    //             relation: BaseModel.HasManyRelation,
-    //             // The related model. This can be either a Model
-    //             // subclass constructor or an absolute file path
-    //             // to a module that exports one.
-    //             modelClass: Animal,
-    //             join: {
-    //                 from: 'persons.id',
-    //                 to: 'animals.ownerId'
-    //             }
-    //         },
-    //
-    //         movies: {
-    //             relation: BaseModel.ManyToManyRelation,
-    //             modelClass: Movie,
-    //             join: {
-    //                 from: 'persons.id',
-    //                 // ManyToMany relation needs the `through` object
-    //                 // to describe the join table.
-    //                 through: {
-    //                     // If you have a model class for the join table
-    //                     // you need to specify it like this:
-    //                     // modelClass: PersonMovie,
-    //                     from: 'persons_movies.personId',
-    //                     to: 'persons_movies.movieId'
-    //                 },
-    //                 to: 'movies.id'
-    //             }
-    //         },
-    //
-    //         children: {
-    //             relation: BaseModel.HasManyRelation,
-    //             modelClass: Person,
-    //             join: {
-    //                 from: 'persons.id',
-    //                 to: 'persons.parentId'
-    //             }
-    //         },
-    //
-    //         parent: {
-    //             relation: BaseModel.BelongsToOneRelation,
-    //             modelClass: Person,
-    //             join: {
-    //                 from: 'persons.parentId',
-    //                 to: 'persons.id'
-    //             }
-    //         }
-    //     };
-    // }
+    // This object defines the relations to other models.
+    static get relationMappings() {
+        // Import models here to prevent require loops.
+        const Stage = require('./Stage');
+        const User = require('./User');
+        const Player = require('./Player');
+        const Character = require('./Character');
+        const Match = require('./Match');
+        const Team = require('./Team');
+        const MatchData = require('./MatchData');
+
+        return {
+            match: {
+                relation: BaseModel.HasOneRelation,
+                modelClass: Match,
+                join: {
+                    from: 'player.match_id',
+                    to: 'match.id'
+                }
+            },
+
+            user: {
+                relation: BaseModel.HasOneRelation,
+                // The related model. This can be either a Model
+                // subclass constructor or an absolute file path
+                // to a module that exports one.
+                modelClass: Stage,
+                join: {
+                    from: 'player.user_id',
+                    to: 'user.id'
+                }
+            },
+
+            character: {
+                relation: BaseModel.HasOneRelation,
+                modelClass: Character,
+                join: {
+                    from: 'player.character_id',
+                    to: 'character.id'
+                }
+            },
+
+            team: {
+                relation: BaseModel.HasOneRelation,
+                modelClass: Team,
+                join: {
+                    from: 'player.team_id',
+                    to: 'team.id'
+                }
+            },
+            data: {
+                relation: BaseModel.HasManyRelation,
+                modelClass: MatchData,
+                join: {
+                    from: 'player.id',
+                    to: 'player_data.player_id'
+                }
+            }
+        };
+    }
 }
 
 module.exports = Player;

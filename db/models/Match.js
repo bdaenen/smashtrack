@@ -48,7 +48,7 @@ class Match extends BaseModel {
                 }
             },
 
-            matchData: {
+            data: {
                 relation: BaseModel.HasManyRelation,
                 modelClass: MatchData,
                 join: {

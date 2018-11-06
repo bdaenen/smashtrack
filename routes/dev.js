@@ -16,7 +16,7 @@ router.get('/', async function(req, res) {
 router.get('/match', async function(req, res) {
   let Match = require('../db/models/Match');
 
-  let match = await Match.query().first().where('id', '=', '140').eager('[stage, author, players]');
+  let match = await Match.query().first().where('id', '=', '140').eager('[stage, author, players, data]');
 
   res.json(match);
 });
