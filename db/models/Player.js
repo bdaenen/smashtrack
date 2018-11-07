@@ -16,6 +16,7 @@ class Player extends BaseModel {
         const Match = require('./Match');
         const Team = require('./Team');
         const MatchData = require('./MatchData');
+        const PlayerData = require('./PlayerData');
 
         return {
             match: {
@@ -32,7 +33,7 @@ class Player extends BaseModel {
                 // The related model. This can be either a Model
                 // subclass constructor or an absolute file path
                 // to a module that exports one.
-                modelClass: Stage,
+                modelClass: User,
                 join: {
                     from: 'player.user_id',
                     to: 'user.id'
@@ -58,12 +59,28 @@ class Player extends BaseModel {
             },
             data: {
                 relation: BaseModel.HasManyRelation,
-                modelClass: MatchData,
+                modelClass: PlayerData,
                 join: {
                     from: 'player.id',
                     to: 'player_data.player_id'
                 }
             }
+        };
+    }
+
+    static toApi(player)
+    {
+        let PlayerData = require('./PlayerData');
+        let User = require('./User');
+        let Character = require('./Character');
+        let Team = require('./Team');
+        return {
+            id: player.id,
+            user: User.toApi(player.user),
+            character: Character.toApi(player.character),
+            team: Team.toApi(player.team),
+            is_winner: player.is_winner,
+            data: PlayerData.toApi(player.data)
         };
     }
 }

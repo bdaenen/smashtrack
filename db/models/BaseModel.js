@@ -5,13 +5,18 @@ class BaseModel extends Model {
         return 'id';
     }
 
-    static get columnNameMappers() {
+    /*static get columnNameMappers() {
         return snakeCaseMappers({ upperCase: false });
-    }
+    }*/
 
     static get modelPaths()
     {
         return [__dirname];
+    }
+
+    static toApi(eagerRecord)
+    {
+      return eagerRecord;
     }
 }
 

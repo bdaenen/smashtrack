@@ -27,4 +27,4 @@ class Team extends BaseModel {
      }*/
 }
 
-module.exports = Stage;
+module.exports = Team;

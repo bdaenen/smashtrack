@@ -16,9 +16,27 @@ router.get('/', async function(req, res) {
 router.get('/match', async function(req, res) {
   let Match = require('../db/models/Match');
 
-  let match = await Match.query().first().where('id', '=', '140').eager('[stage, author, players, data]');
+  let match = await Match.query().first().where('id', '=', '140').eager('[stage, author, players.[data, character, user, team], data]');
 
-  res.json(match);
+  res.json(Match.toApi(match));
+});
+
+router.get('/matches', async function(req, res) {
+  let Match = require('../db/models/Match');
+
+  let matches = await Match.query().eager('[stage, author, players.[data, character, user, team], data]').page(0, 50);
+  // TODO: refactor this to a "Api Response" object of some sorts.
+  let results = {
+    count: matches.results.length,
+    total: matches.total
+  };
+
+  results.data = [];
+  for (let i = 0; i < results.count; i++) {
+    results.data.push(Match.toApi(matches.results[i]));
+  }
+
+  res.json(results);
 });
 
 /**
