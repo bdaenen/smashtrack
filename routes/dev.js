@@ -23,20 +23,18 @@ router.get('/match', async function(req, res) {
 
 router.get('/matches', async function(req, res) {
   let Match = require('../db/models/Match');
+  let ApiResponse = require('../api/ApiResponse');
 
   let matches = await Match.query().eager('[stage, author, players.[data, character, user, team], data]').page(0, 50);
   // TODO: refactor this to a "Api Response" object of some sorts.
-  let results = {
-    count: matches.results.length,
-    total: matches.total
-  };
 
-  results.data = [];
-  for (let i = 0; i < results.count; i++) {
-    results.data.push(Match.toApi(matches.results[i]));
+  let data = [];
+
+  for (let i = 0; i < matches.results.count; i++) {
+    data.push(Match.toApi(matches.results[i]));
   }
 
-  res.json(results);
+  res.json(new ApiResponse(matches.results, matches.total));
 });
 
 /**
@@ -47,8 +45,10 @@ router.post('/', async function(req, res) {
 
   let dme = await User.query().insert({
     tag: 'DME',
+    password: 'wololo'
+  });
 
-  })
+  res.json(User.toApi(dme));
 });
 
 
