@@ -5,21 +5,16 @@
      * @param {{results: BaseModel[], total: int}} data
      * @constructor
      */
-    function ApiResponse(data) {
-        this.data = [];
-
-        for (let i = 0; i < data.results.length; i++) {
-            this.data.push(data.results[i].constructor.toApi(data.results[i]));
-        }
-
-        this.count = this.data.length || 1;
+    function RawApiResponse(data) {
+        this.data = data.results;
+        this.count = data.results.length || 1;
         this.total = data.total || 1;
     }
 
     /**
      * @returns {{data: *, count: *, total: *}}
      */
-    ApiResponse.prototype.toJson = function() {
+    RawApiResponse.prototype.toJson = function() {
         return {
             data: this.data,
             count: this.count,
@@ -27,5 +22,5 @@
         }
     };
 
-    module.exports = ApiResponse;
+    module.exports = RawApiResponse;
 }());

@@ -72,17 +72,25 @@ class Match extends BaseModel {
             date: match.date,
             stocks: match.stocks,
             time: match.match_time,
-            time_remaining: match.match_time_remaining,
-            stage: Stage.toApi(match.stage),
-            author_user: User.toApi(match.author),
-            data: MatchData.toApi(match.data)
+            time_remaining: match.match_time_remaining
         };
 
-        result.players = [];
+        if (match.stage) {
+            result.match.stage = Stage.toApi(match.stage);
+        }
+        if (match.author) {
+            result.match.author_user = User.toApi(match.author);
+        }
+        if (match.data) {
+          result.match.data = MatchData.toApi(match.data)
+        }
 
-        for (let i = 0; i < match.players.length; i++) {
-            let player = match.players[i];
-            result.players.push(Player.toApi(player));
+        if (match.players) {
+            result.players = [];
+            for (let i = 0; i < match.players.length; i++) {
+                let player = match.players[i];
+                result.players.push(Player.toApi(player));
+            }
         }
 
         return result;

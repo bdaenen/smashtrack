@@ -26,15 +26,8 @@ router.get('/matches', async function(req, res) {
   let ApiResponse = require('../api/ApiResponse');
 
   let matches = await Match.query().eager('[stage, author, players.[data, character, user, team], data]').page(0, 50);
-  // TODO: refactor this to a "Api Response" object of some sorts.
 
-  let data = [];
-
-  for (let i = 0; i < matches.results.count; i++) {
-    data.push(Match.toApi(matches.results[i]));
-  }
-
-  res.json(new ApiResponse(matches.results, matches.total));
+  res.json(new ApiResponse(matches));
 });
 
 /**

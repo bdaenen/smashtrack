@@ -14,6 +14,7 @@ let stagesRouter = require('./routes/stages');
 let teamsRouter = require('./routes/teams');
 let adminRouter = require('./routes/admin');
 let devRouter = require('./routes/dev');
+let statsRouter = require('./routes/stats');
 
 let passport = require('passport');
 let LocalStrategy = require('passport-local').Strategy;
@@ -168,6 +169,7 @@ app.use('/stages', stagesRouter);
 app.use('/teams', teamsRouter);
 app.use('/admin', adminRouter);
 app.use('/dev', devRouter);
+app.use('/stats', statsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

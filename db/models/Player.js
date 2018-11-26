@@ -74,14 +74,29 @@ class Player extends BaseModel {
         let User = require('./User');
         let Character = require('./Character');
         let Team = require('./Team');
-        return {
+
+        let apiObj = {
             id: player.id,
-            user: User.toApi(player.user),
-            character: Character.toApi(player.character),
-            team: Team.toApi(player.team),
-            is_winner: player.is_winner,
-            data: PlayerData.toApi(player.data)
+            is_winner: player.is_winner
         };
+
+        if (player.data) {
+            apiObj.data = PlayerData.toApi(player.data);
+        }
+
+        if (player.user) {
+            apiObj.user = User.toApi(player.user);
+        }
+
+        if (player.character) {
+            apiObj.character = Character.toApi(player.character);
+        }
+
+        if (player.team) {
+            apiObj.team = Team.toApi(player.team);
+        }
+
+        return apiObj;
     }
 }
 
