@@ -3,17 +3,20 @@ let router = express.Router();
 let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
 
-/**
- *
- */
-router.get('/', function(req, res) {
+router.get('/', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
-    let page = Math.abs(parseInt(req.query.page, 10) || 1);
-    let order = req.query.sort || 'id';
-    let orderDir = req.query.direction || 'asc';
+    let Match = require('../db/models/Match');
+    let ApiRequest = require('../api/ApiRequest');
+    let ApiResponse = require('../api/ApiResponse');
 
-    res.json(dam.matches.order(order, orderDir).page(pageSize, page));
+    let apiRequest = new ApiRequest(req);
+    let matches = await Match.query()
+      .eager('[stage, author, players.[data, character, user, team], data]')
+      .orderBy(apiRequest.order, apiRequest.orderDir)
+      .page(apiRequest.page, apiRequest.pageSize)
+    ;
+
+    res.json(new ApiResponse(matches));
 });
 
 router.post('/data/add', async function(req, res) {

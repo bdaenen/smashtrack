@@ -21,15 +21,6 @@ router.get('/match', async function(req, res) {
   res.json(Match.toApi(match));
 });
 
-router.get('/matches', async function(req, res) {
-  let Match = require('../db/models/Match');
-  let ApiResponse = require('../api/ApiResponse');
-
-  let matches = await Match.query().eager('[stage, author, players.[data, character, user, team], data]').page(0, 50);
-
-  res.json(new ApiResponse(matches));
-});
-
 /**
  * Add a user.
  */

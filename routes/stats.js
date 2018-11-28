@@ -8,12 +8,9 @@ let permissions = require('../lib/permissions');
  */
 router.get('/', function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
-    let page = Math.abs(parseInt(req.query.page, 10) || 1);
-    let order = req.query.order || 'id';
-    let orderDirection = req.query.orderDirection || 'asc';
-
-    res.json(dam.users.order(order, orderDirection).page(pageSize, page));
+    res.json({
+        '/user/:id/characters': 'Returns a list of character pick frequency for a given user. Sortable.'
+    });
 });
 
 /**
@@ -21,13 +18,15 @@ router.get('/', function(req, res) {
  */
 router.get('/user/:id(\\d+)/characters', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let order = req.query.orderBy || 'character.id';
-    let orderDir = req.query.orderDir || 'asc';
-    let page = req.query.page || 0;
+    let ApiRequest = require('../api/ApiRequest');
+    
+    let apiRequest = new ApiRequest(req);
 
     let userId = parseInt(req.params.id, 10);
+    
     if (!userId) {
         res.sendStatus(400);
+        res.json({err: 400, message: 'A user ID is required'});
         return;
     }
 
@@ -45,8 +44,8 @@ router.get('/user/:id(\\d+)/characters', async function(req, res) {
       .groupBy('character.id')
       .where('user_id', '=', userId)
       .orWhereNull('user_id')
-      .orderBy(order, orderDir)
-      .page(page, 2000)
+      .orderBy(apiRequest.order, apiRequest.orderDir)
+      .page(apiRequest.page, apiRequest.pageSize)
     ;
 
     return res.json(new RawApiResponse(players));

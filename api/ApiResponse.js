@@ -12,8 +12,8 @@
             this.data.push(data.results[i].constructor.toApi(data.results[i]));
         }
 
-        this.count = this.data.length || 1;
-        this.total = data.total || 1;
+        this.count = this.data.length || 0;
+        this.total = data.total || 0;
     }
 
     /**
