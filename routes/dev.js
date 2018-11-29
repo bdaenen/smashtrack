@@ -24,16 +24,16 @@ router.get('/match', async function(req, res) {
 /**
  * Add a user.
  */
-router.post('/', async function(req, res) {
-  let User = require('../db/models/User');
-
-  let dme = await User.query().insert({
-    tag: 'DME',
-    password: 'wololo'
-  });
-
-  res.json(User.toApi(dme));
-});
+// router.post('/', async function(req, res) {
+//   let User = require('../db/models/User');
+//
+//   let dme = await User.query().insert({
+//     tag: 'DME',
+//     password: 'wololo'
+//   });
+//
+//   res.json(User.toApi(dme));
+// });
 
 
 module.exports = router;
