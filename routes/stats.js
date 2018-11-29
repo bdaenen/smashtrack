@@ -16,13 +16,13 @@ router.get('/', function(req, res) {
 /**
  *
  */
-router.get('/user/:id(\\d+)/characters', async function(req, res) {
+router.get('/user/characters', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
     let ApiRequest = require('../api/ApiRequest');
     
     let apiRequest = new ApiRequest(req);
 
-    let userId = parseInt(req.params.id, 10);
+    let userId = parseInt(req.query.userId, 10);
     
     if (!userId) {
         res.sendStatus(400);
