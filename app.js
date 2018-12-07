@@ -71,10 +71,16 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Set CORS headers
-app.use(function(req, res, next) {
+app.use(async function(req, res, next) {
   let allowedOrigins = ['http://127.0.0.1:8080', 'http://localhost:8080', 'http://127.0.0.1:8081', 'http://localhost:8081', 'https://smacker.benn0.be', 'https://smackerboard.benn0.be'];
+  let extraAllowedOrigins = await new Promise(function(resolve, reject){
+      db.query('SELECT distinct origin FROM user_allowed_origin', function(error, results, fields){
+          resolve(results.map(function(el){return el.origin}));
+      });
+  });
+
   let origin = req.headers.origin;
-  if(allowedOrigins.indexOf(origin) > -1){
+  if(allowedOrigins.concat(extraAllowedOrigins).indexOf(origin) > -1){
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
