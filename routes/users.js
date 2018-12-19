@@ -3,6 +3,10 @@ let router = express.Router();
 let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
 
+let User = require('../db/models/User');
+let ApiRequest = require('../api/ApiRequest');
+let ApiResponse = require('../api/ApiResponse');
+
 /**
  *
  */
@@ -14,6 +18,20 @@ router.get('/', function(req, res) {
     let orderDirection = req.query.orderDirection || 'asc';
 
     res.json(dam.users.order(order, orderDirection).page(pageSize, page));
+});
+
+router.get('/me/boards', async function(req, res) {
+    if (!permissions.checkReadPermission(req, res)){return}
+    let apiRequest = new ApiRequest(req);
+    let user = await User.query().where('id', '=', apiRequest.user.id).first();
+
+    let boards = await user
+      .$relatedQuery('boards')
+      .orderBy('board.'+ apiRequest.order, apiRequest.orderDir)
+      .page(apiRequest.page, apiRequest.pageSize)
+    ;
+
+    res.json(new ApiResponse(boards));
 });
 
 /**

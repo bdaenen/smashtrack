@@ -5,16 +5,6 @@ let cookieParser = require('cookie-parser');
 let logger = require('morgan');
 //let flash = require('req-flash');
 
-let indexRouter = require('./routes/index');
-let usersRouter = require('./routes/users');
-let loginRouter = require('./routes/login');
-let matchesRouter = require('./routes/matches');
-let charactersRouter = require('./routes/characters');
-let stagesRouter = require('./routes/stages');
-let teamsRouter = require('./routes/teams');
-let adminRouter = require('./routes/admin');
-let devRouter = require('./routes/dev');
-let statsRouter = require('./routes/stats');
 
 let passport = require('passport');
 let LocalStrategy = require('passport-local').Strategy;
@@ -166,16 +156,17 @@ app.post('/login', function(req, res, next){
   })(req, res, next);
 });
 
-app.use('/', indexRouter);
-app.use('/login', loginRouter);
-app.use('/users', usersRouter);
-app.use('/matches', matchesRouter);
-app.use('/characters', charactersRouter);
-app.use('/stages', stagesRouter);
-app.use('/teams', teamsRouter);
-app.use('/admin', adminRouter);
-app.use('/dev', devRouter);
-app.use('/stats', statsRouter);
+app.use('/', require('./routes/index'));
+app.use('/login', require('./routes/login'));
+app.use('/users', require('./routes/users'));
+app.use('/matches', require('./routes/matches'));
+app.use('/characters', require('./routes/characters'));
+app.use('/stages', require('./routes/stages'));
+app.use('/teams', require('./routes/teams'));
+app.use('/admin', require('./routes/admin'));
+app.use('/dev', require('./routes/dev'));
+app.use('/stats', require('./routes/stats'));
+app.use('/boards', require('./routes/boards'));
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

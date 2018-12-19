@@ -13,6 +13,7 @@ class Match extends BaseModel {
         const User = require('./User');
         const Player = require('./Player');
         const MatchData = require('./MatchData');
+        const Board = require('./Board');
 
         return {
             author: {
@@ -54,6 +55,19 @@ class Match extends BaseModel {
                 join: {
                     from: 'match.id',
                     to: 'match_data.match_id'
+                }
+            },
+
+            boards: {
+                relation: BaseModel.ManyToManyRelation,
+                modelClass: Board,
+                join: {
+                    from: 'match.id',
+                    through: {
+                        from: 'board_match.match_id',
+                        to: 'board_match.board_id'
+                    },
+                    to: 'board.id'
                 }
             }
         };

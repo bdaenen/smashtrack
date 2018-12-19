@@ -5,6 +5,7 @@ exports.up = async function(knex, Promise) {
         table.increments();
         table.string('name');
         table.uuid('uuid');
+        table.string('slug');
 
         migrationHelper.addTimestamps(knex, table);
     });

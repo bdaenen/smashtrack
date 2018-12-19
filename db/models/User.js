@@ -6,14 +6,9 @@ class User extends Password(BaseModel) {
         return 'user';
     }
 
-    // This object defines the relations to other models.
     static get relationMappings() {
-        // Import models here to prevent require loops.
-        const Stage = require('./Stage');
-        const User = require('./User');
-        const Player = require('./Player');
-        const MatchData = require('./MatchData');
         const Match = require('./Match');
+        const Board = require('./Board');
 
         return {
             matches: {
@@ -21,18 +16,25 @@ class User extends Password(BaseModel) {
                 modelClass: Match,
                 join: {
                     from: 'user.id',
-                    // ManyToMany relation needs the `through` object
-                    // to describe the join table.
                     through: {
-                        // If you have a model class for the join table
-                        // you need to specify it like this:
-                        // modelClass: PersonMovie,
                         from: 'player.user_id',
                         to: 'player.match_id'
                     },
                     to: 'match.id'
                 }
             },
+            boards: {
+                relation: BaseModel.ManyToManyRelation,
+                modelClass: Board,
+                join: {
+                    from: 'user.id',
+                    through: {
+                        from: 'board_user.user_id',
+                        to: 'board_user.board_id'
+                    },
+                    to: 'board.id'
+                }
+            }
         };
     }
 
