@@ -3,9 +3,8 @@ let migrationHelper = require('../db/migrationHelper');
 exports.up = async function(knex, Promise) {
     await knex.schema.createTable('board', function (table) {
         table.increments();
-        table.string('name');
-        table.uuid('uuid');
-        table.string('slug');
+        table.string('name').notNullable();
+        table.uuid('uuid').notNullable();
 
         migrationHelper.addTimestamps(knex, table);
     });

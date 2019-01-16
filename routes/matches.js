@@ -77,14 +77,7 @@ router.post('/add', async function(req, res) {
     if (!permissions.checkWritePermission(req, res)){return}
     let data = req.body;
     if (data.match) {
-        // We're in prod mode and thus have a user.
-        if (process.argv.indexOf('dev=1') !== -1) {
-            data.match.author_user_id = req.user.id;
-        }
-        // We're in dev mode and might not have a user.
-        else {
-            data.match.author_user_id = (req.user && req.user.id) || 0;
-        }
+        data.match.author_user_id = req.user.id;
     }
 
     try {
