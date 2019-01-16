@@ -12,16 +12,12 @@ router.get('/', async function(req, res) {
 
     let apiRequest = new ApiRequest(req);
     let boards = await Board.query()
+      .eager('[users, admins]')
       .orderBy(apiRequest.order, apiRequest.orderDir)
       .page(apiRequest.page, apiRequest.pageSize)
     ;
 
     res.json(new ApiResponse(boards));
-});
-
-router.get('/data/add', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json({structure: require('../db/structure/addMatchData')});
 });
 
 router.post('/add', async function(req, res) {
@@ -32,9 +28,15 @@ router.post('/add', async function(req, res) {
     try {
         const newBoard = await Board
           .query()
-          .insert({
+          .upsertGraph([{
               name: data.name,
-              uuid: uuid('board')
+              uuid: uuid('board'),
+              admins: [{
+                  '#dbRef': req.user.id,
+                  is_admin: 1
+              }],
+          }], {
+              relate: true
           });
 
         if (newBoard) {

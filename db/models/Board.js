@@ -24,6 +24,20 @@ class Board extends BaseModel {
                     to: 'user.id'
                 }
             },
+            admins: {
+                relation: BaseModel.ManyToManyRelation,
+                modelClass: User,
+                filter: {'board_user.is_admin': true},
+                join: {
+                    from: 'board.id',
+                    through: {
+                        from: 'board_user.board_id',
+                        to: 'board_user.user_id',
+                        extra: ['is_admin']
+                    },
+                    to: 'user.id'
+                }
+            },
             matches: {
                 relation: BaseModel.ManyToManyRelation,
                 modelClass: Match,
