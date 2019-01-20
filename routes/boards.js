@@ -10,26 +10,22 @@ let ApiResponse = require('../api/ApiResponse');
 router.get('/', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
 
-    let apiRequest = new ApiRequest(req);
-    let boards = await Board.query()
-      .eager('[users, admins]')
-      .orderBy(apiRequest.order, apiRequest.orderDir)
-      .page(apiRequest.page, apiRequest.pageSize)
-    ;
+    req = new ApiRequest(req);
+    let boards = await Board.getList(req);
 
     res.json(new ApiResponse(boards));
 });
 
 router.post('/add', async function(req, res) {
     if (!permissions.checkWritePermission(req, res)){return}
-    let data = req.body;
+    req = new ApiRequest(req);
     let uuid = require('../lib/uuid');
 
     try {
         const newBoard = await Board
           .query()
           .upsertGraph([{
-              name: data.name,
+              name: req.data.name,
               uuid: uuid('board'),
               admins: [{
                   '#dbRef': req.user.id,
@@ -40,7 +36,7 @@ router.post('/add', async function(req, res) {
           });
 
         if (newBoard) {
-            res.json({success: true, data: newBoard});
+            res.json({success: true, data: await Board.getDetail(newBoard.id)});
         }
         else {
             res.status(400);
@@ -53,9 +49,14 @@ router.post('/add', async function(req, res) {
     }
 });
 
-/**
- *
- */
+router.get('/:id(\\d+)', async function(req, res) {
+    if (!permissions.checkReadPermission(req, res)){return}
+    req = new ApiRequest(req);
+    let board = await Board.getDetail(req.params.id, req);
+
+    return res.json(new ApiResponse(board));
+});
+
 router.get('/add', function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
     res.json({structure: require('../db/structure/addMatch')});

@@ -2,20 +2,16 @@ let express = require('express');
 let router = express.Router();
 let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
+let ApiRequest = require('../api/ApiRequest');
+let ApiResponse = require('../api/ApiResponse');
+let Match = require('../db/models/Match');
 
 router.get('/', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let Match = require('../db/models/Match');
-    let ApiRequest = require('../api/ApiRequest');
-    let ApiResponse = require('../api/ApiResponse');
 
-    let apiRequest = new ApiRequest(req);
-    let matches = await Match.query()
-      .eager('[stage, author, players.[data, character, user, team], data]')
-      .orderBy(apiRequest.order, apiRequest.orderDir)
-      .page(apiRequest.page, apiRequest.pageSize)
-    ;
+    req = new ApiRequest(req);
 
+    let matches = await Match.getList(req);
     res.json(new ApiResponse(matches));
 });
 
@@ -65,9 +61,18 @@ router.post('/', function(req, res) {
 /**
  *
  */
-router.get('/:id(\\d+)', function(req, res) {
+router.get('/:id(\\d+)', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    res.json(dam.matches.filter({'match.id': parseInt(req.params.id, 10)}));
+    req = new ApiRequest(req);
+
+    res.json(
+      new ApiResponse(
+          await req.applyRequestParamsToQuery(
+            Match.query().eager(Match.eagerDetailFields)
+              .where('match.id', req.params.id)
+          )
+      )
+    );
 });
 
 /**

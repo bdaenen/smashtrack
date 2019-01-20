@@ -73,6 +73,14 @@ class Match extends BaseModel {
         };
     }
 
+    static get eagerListFields() {
+        return '[stage, author, players.[data, character, user, team], data]';
+    }
+
+    static get eagerDetailFields() {
+        return '[stage, author, players.[data, character, user, team], data]';
+    }
+
     static toApi(match) {
         let Player = require('./Player');
         let Stage = require('./Stage');
@@ -96,7 +104,7 @@ class Match extends BaseModel {
             result.match.author_user = User.toApi(match.author);
         }
         if (match.data) {
-          result.match.data = MatchData.toApi(match.data)
+          result.match.data = MatchData.toApi(match.data);
         }
 
         if (match.players) {
