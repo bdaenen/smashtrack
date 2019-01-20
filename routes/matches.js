@@ -4,6 +4,7 @@ let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
 let ApiRequest = require('../api/ApiRequest');
 let ApiResponse = require('../api/ApiResponse');
+let ApiPostResponse = require('../api/ApiPostResponse');
 let Match = require('../db/models/Match');
 
 router.get('/', async function(req, res) {
@@ -80,14 +81,17 @@ router.get('/:id(\\d+)', async function(req, res) {
  */
 router.post('/add', async function(req, res) {
     if (!permissions.checkWritePermission(req, res)){return}
-    let data = req.body;
-    if (data.match) {
-        data.match.author_user_id = req.user.id;
-    }
+    req = new ApiRequest(req);
 
     try {
-        let success = await dam.createMatch(data);
-        res.json({success: success});
+        let newMatch = await Match.upsertFromApi(req);
+
+        if (newMatch) {
+            res.json({success: true, data: new ApiPostResponse(await Match.getDetail(newMatch.id, req))});
+        }
+        else {
+            throw new Error('Something went wrong while inserting a match.');
+        }
     }
     catch (error) {
         res.status(400);

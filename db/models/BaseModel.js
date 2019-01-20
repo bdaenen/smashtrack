@@ -1,4 +1,4 @@
-const { Model/*, snakeCaseMappers*/ } = require('objection');
+const { Model, transaction/*, snakeCaseMappers*/ } = require('objection');
 
 class BaseModel extends Model {
     static get idColumn() {
@@ -25,6 +25,17 @@ class BaseModel extends Model {
         return '';
     }
 
+    static async upsertFromApi(apiRequest) {
+        return await transaction(this.knex(), async (trx) => {
+            let graph = this.apiRequestToGraph(apiRequest);
+            return await this.query(trx).upsertGraph(graph, {relate: true});
+        })
+    }
+
+    static apiRequestToGraph(apiRequest) {
+        return apiRequest.data;
+    }
+
     /**
      * Get a list of entities, with pagination and ordering applied from the request.
      * @param apiRequest
@@ -43,13 +54,10 @@ class BaseModel extends Model {
      * @returns {Promise<BaseModel[]>}
      */
     static async getDetail(id, apiRequest) {
-        let resultQb = this.query().eager(this.eagerDetailFields).where(this.idColumn, id);
-        let result;
         if (apiRequest) {
-            result = apiRequest.applyRequestParamsToQuery(resultQb);
+            return await apiRequest.applyRequestParamsToQuery(this.query().eager(this.eagerDetailFields).where(this.idColumn, id));
         }
-
-        return await result;
+        return await this.query().eager(this.eagerDetailFields).where(this.idColumn, id);
     }
 }
 

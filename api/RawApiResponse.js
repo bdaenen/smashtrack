@@ -14,7 +14,7 @@
     /**
      * @returns {{data: *, count: *, total: *}}
      */
-    RawApiResponse.prototype.toJson = function() {
+    RawApiResponse.prototype.toJSON = function() {
         return {
             data: this.data,
             count: this.count,

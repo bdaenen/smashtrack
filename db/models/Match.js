@@ -81,6 +81,53 @@ class Match extends BaseModel {
         return '[stage, author, players.[data, character, user, team], data]';
     }
 
+    // TODO: Player/Data mapping in respective models?
+    // TODO: Add option to post boards
+    // TODO: Add validation?
+    static apiRequestToGraph(apiRequest) {
+        let apiData = apiRequest.data;
+        let graph = {
+            author_user_id: parseInt(apiRequest.user.id, 10),
+            date: apiData.match.date,
+            stage_id: parseInt(apiData.match.stage_id, 10),
+            stocks: parseInt(apiData.match.stocks, 10),
+            match_time: apiData.match.time,
+            match_time_remaining: apiData.match.time_remaining || null,
+            players: []
+        };
+
+        for (let i = 0; i < apiData.players.length; i++) {
+            let player = apiData.players[i];
+            let graphPlayer = {
+                user_id: parseInt(player.user_id, 10),
+                character_id: parseInt(player.character_id, 10),
+                is_winner: player.is_winner,
+                team_id: null
+            };
+
+            if (player.team_id) {
+                graphPlayer.team_id = player.team_id;
+            }
+
+            if (player.data) {
+                graphPlayer.data = [];
+                let keys = Object.keys(player.data);
+                for (let i = 0; i < keys.length; i++) {
+                    let key = keys[i];
+                    let data = {
+                        key: key,
+                        value: player.data[key]
+                    };
+                    graphPlayer.data.push(data);
+                }
+            }
+
+            graph.players.push(graphPlayer);
+        }
+
+        return graph;
+    }
+
     static toApi(match) {
         let Player = require('./Player');
         let Stage = require('./Stage');

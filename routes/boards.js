@@ -6,6 +6,7 @@ let permissions = require('../lib/permissions');
 let Board = require('../db/models/Board');
 let ApiRequest = require('../api/ApiRequest');
 let ApiResponse = require('../api/ApiResponse');
+let ApiPostResponse = require('../api/ApiPostResponse');
 
 router.get('/', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
@@ -22,21 +23,22 @@ router.post('/add', async function(req, res) {
     let uuid = require('../lib/uuid');
 
     try {
+        // TODO: refactor to Board.upsertFromApi
         const newBoard = await Board
           .query()
-          .upsertGraph([{
+          .upsertGraph({
               name: req.data.name,
               uuid: uuid('board'),
               admins: [{
                   '#dbRef': req.user.id,
                   is_admin: 1
               }],
-          }], {
+          }, {
               relate: true
           });
 
         if (newBoard) {
-            res.json({success: true, data: await Board.getDetail(newBoard.id)});
+            res.json({success: true, data: new ApiPostResponse(await Board.getDetail(newBoard.id, req))});
         }
         else {
             res.status(400);

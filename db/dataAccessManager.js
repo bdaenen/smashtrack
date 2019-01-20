@@ -139,47 +139,6 @@ let dataAccessManager = Object.create({
     }.bind(this));
   },
 
-    /**
-     * TODO: refactor to use Models.
-     * @param data
-     */
-    createMatch: async function(data){
-        // Throws an error if it does not validate.
-        let validates = await validateMatchData(data);
-
-        if (!validates) {
-          return false;
-        }
-
-        let match = await saveMatch(data.match);
-        data.players.forEach(async function(dataPlayer){
-            dataPlayer.match_id = match.id;
-            let player = await savePlayer(dataPlayer);
-
-            if (player.data) {
-                if (player.data.constructor !== Object) {
-                    throw new Error('Badly structured data.');
-                }
-
-                Object.keys(player.data).forEach(async function(key){
-                    let data = {
-                        key: key,
-                        value: dataPlayer.data[key],
-                        player_id: player.id
-                    };
-                    if (!data.key || !data.value || !data.player_id) {throw new Error('Invalid data provided for player ' + player.id);}
-                    if (typeof data.value === 'object') {
-                        throw new Error('Nested objects are not (yet) implemented.');
-                    }
-
-                    await savePlayerData(data);
-                }, this);
-            }
-        }, this);
-
-        return true;
-    },
-
   /**
    * @param data
    */
@@ -309,87 +268,6 @@ dataAccessManager.emitter= new Emitter();
 
 /**
  * @param data
- */
-function saveMatch(data) {
-  return new Promise(function(resolve, reject){
-    db.query(
-      'INSERT INTO `match` (`date`, stocks, stage_id, match_time, match_time_remaining, is_team, author_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [
-        data.date || null,
-        data.stocks,
-        data.stage_id,
-        data.time || null,
-        data.time_remaining || null,
-        +!!data.is_team,
-        data.author_user_id
-      ],
-      function(sqlerr, results, fields){
-        if (sqlerr) {
-          throw sqlerr;
-        }
-
-        data.id = results.insertId;
-        changedDatasets.add('matches');
-        resolve(data);
-      }
-    );
-  });
-}
-
-/**
- * @param data
- */
-function savePlayer(data) {
-  return new Promise(function(resolve, reject){
-      db.query(
-        'INSERT INTO `player` (match_id, user_id, character_id, team_id, is_winner) VALUES (?, ?, ?, ?, ?)',
-        [
-            data.match_id,
-            data.user_id,
-            data.character_id,
-            data.team_id || null,
-            +!!data.is_winner
-        ],
-        function(sqlerr, results, fields) {
-            if (sqlerr) {
-              throw sqlerr;
-            }
-
-            data.id = results.insertId;
-            changedDatasets.add('matches');
-            return resolve(data);
-        }
-      );
-  });
-}
-
-/**
- * @param data
- * @returns {Promise}
- */
-function savePlayerData(data) {
-  return new Promise(function(resolve, reject) {
-    db.query(
-      'INSERT INTO `player_data` (player_id, `key`, `value`) VALUES (?, ?, ?)',
-      [
-        data.player_id,
-        data.key,
-        data.value
-      ],
-      function(sqlerr, results, fields) {
-        if (sqlerr) {
-          throw sqlerr;
-        }
-        data.id = results.insertId;
-        changedDatasets.add('matches');
-        return resolve(data);
-      }
-    );
-  });
-}
-
-/**
- * @param data
  * @returns {Promise}
  */
 function saveMatchData(data) {
@@ -454,50 +332,6 @@ function validateUserData(data, callback) {
   }
 
   return callback(errors, true);
-}
-
-/**
- * @param data
- * @returns {boolean}
- */
-function validateMatchData(data){
-      let requiredFields = ['match', 'players'];
-      let requiredMatchFields = [
-          'stocks',
-          'stage_id',
-          'author_user_id'
-      ];
-      let requiredPlayerFields = [
-          'user_id',
-          'character_id',
-          'is_winner'
-      ];
-      let missingData;
-      let missingMatchData;
-      let missingUserData;
-
-      missingData =_.difference(requiredFields, Object.keys(data));
-      if (missingData.length) {
-          throw new Error('Missing data: ' + missingData);
-      }
-
-      missingMatchData = _.difference(requiredMatchFields, Object.keys(data.match));
-      if (missingMatchData.length) {
-          throw new Error('Missing match data: ' + missingMatchData);
-      }
-      missingUserData = [];
-      data.players.forEach(function(user) {
-          let missing = _.difference(requiredPlayerFields, Object.keys(user));
-          if (missing.length) {
-              missingUserData.push(missing);
-          }
-      });
-
-      if (missingMatchData.length) {
-          throw new Error('missing user data: ' + missingUserData);
-      }
-
-      return true;
 }
 
 /**
