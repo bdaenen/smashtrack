@@ -6,6 +6,20 @@ class MatchData extends BaseModel {
         return 'match_data';
     }
 
+    static apiDataToGraph(apiData) {
+        let data = [];
+        let keys = Object.keys(apiData);
+        for (let i = 0; i < keys.length; i++) {
+            let key = keys[i];
+            data.push({
+                key: key,
+                value: apiData[key]
+            });
+        }
+
+        return data;
+    }
+
     static toApi(matchDataRecords) {
         if (!matchDataRecords instanceof Array) {
             throw Error('MatchData should always be an array when mapping to the API.');

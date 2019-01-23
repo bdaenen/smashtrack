@@ -68,8 +68,28 @@ class Player extends BaseModel {
         };
     }
 
-    static toApi(player)
-    {
+    static apiDataToGraph(apiData) {
+        const PlayerData = require('./PlayerData');
+
+        let graphPlayer = {
+            user_id: parseInt(apiData.user_id, 10),
+            character_id: parseInt(apiData.character_id, 10),
+            is_winner: apiData.is_winner,
+            team_id: null
+        };
+
+        if (apiData.team_id) {
+            graphPlayer.team_id = apiData.team_id;
+        }
+
+        if (apiData.data) {
+            graphPlayer.data = PlayerData.apiDataToGraph(apiData.data);
+        }
+
+        return graphPlayer;
+    }
+
+    static toApi(player) {
         let PlayerData = require('./PlayerData');
         let User = require('./User');
         let Character = require('./Character');

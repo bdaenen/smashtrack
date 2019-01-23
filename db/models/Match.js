@@ -74,17 +74,24 @@ class Match extends BaseModel {
     }
 
     static get eagerListFields() {
-        return '[stage, author, players.[data, character, user, team], data]';
+        return '[stage, author, players.[data, character, user, team], data, boards]';
     }
 
     static get eagerDetailFields() {
-        return '[stage, author, players.[data, character, user, team], data]';
+        return '[stage, author, players.[data, character, user, team], data, boards]';
+    }
+
+    static apiDataToGraph(apiData) {
+        throw new Error('Not supported for this object. The full apiRequest is required.');
     }
 
     // TODO: Player/Data mapping in respective models?
     // TODO: Add option to post boards
     // TODO: Add validation?
     static apiRequestToGraph(apiRequest) {
+        const Player = require('./Player');
+        const MatchData = require('./MatchData');
+
         let apiData = apiRequest.data;
         let graph = {
             author_user_id: parseInt(apiRequest.user.id, 10),
@@ -93,36 +100,24 @@ class Match extends BaseModel {
             stocks: parseInt(apiData.match.stocks, 10),
             match_time: apiData.match.time,
             match_time_remaining: apiData.match.time_remaining || null,
-            players: []
+            players: [],
         };
+
+        if (apiData.match.data) {
+            graph.data = MatchData.apiDataToGraph((apiData.match.data));
+        }
+
+        if (apiData.match.board_ids) {
+            graph.boards = [];
+            for (let i = 0; i < apiData.match.board_ids.length; i++) {
+                graph.boards.push({id: apiData.match.board_ids[i]});
+            }
+        }
 
         for (let i = 0; i < apiData.players.length; i++) {
             let player = apiData.players[i];
-            let graphPlayer = {
-                user_id: parseInt(player.user_id, 10),
-                character_id: parseInt(player.character_id, 10),
-                is_winner: player.is_winner,
-                team_id: null
-            };
-
-            if (player.team_id) {
-                graphPlayer.team_id = player.team_id;
-            }
-
-            if (player.data) {
-                graphPlayer.data = [];
-                let keys = Object.keys(player.data);
-                for (let i = 0; i < keys.length; i++) {
-                    let key = keys[i];
-                    let data = {
-                        key: key,
-                        value: player.data[key]
-                    };
-                    graphPlayer.data.push(data);
-                }
-            }
-
-            graph.players.push(graphPlayer);
+            let playerGraph = Player.apiDataToGraph(player);
+            graph.players.push(playerGraph);
         }
 
         return graph;
@@ -133,6 +128,7 @@ class Match extends BaseModel {
         let Stage = require('./Stage');
         let User = require('./User');
         let MatchData = require('./MatchData');
+        let Board = require('./Board');
 
         let result = {};
         result.match = {
@@ -154,6 +150,13 @@ class Match extends BaseModel {
           result.match.data = MatchData.toApi(match.data);
         }
 
+        if (match.boards && match.boards.length) {
+            result.match.boards = [];
+            for (let i = 0; i < match.boards.length; i++) {
+                result.match.boards.push(Board.toApi(match.boards[i]));
+            }
+        }
+
         if (match.players) {
             result.players = [];
             for (let i = 0; i < match.players.length; i++) {
@@ -161,7 +164,6 @@ class Match extends BaseModel {
                 result.players.push(Player.toApi(player));
             }
         }
-
         return result;
     }
 }
