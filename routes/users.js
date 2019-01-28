@@ -22,14 +22,13 @@ router.get('/', function(req, res) {
 
 router.get('/me/boards', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let apiRequest = new ApiRequest(req);
-    let user = await User.query().where('id', '=', apiRequest.user.id).first();
+    req = new ApiRequest(req);
+    let user = await User.query().where('id', '=', req.user.id).first();
+    req.order = 'board.' + req.order;
 
-    let boards = await user
-      .$relatedQuery('boards')
-      .orderBy('board.'+ apiRequest.order, apiRequest.orderDir)
-      .page(apiRequest.page, apiRequest.pageSize)
-    ;
+    let boards = await req.applyRequestParamsToQuery(
+      user.$relatedQuery('boards')
+    );
 
     res.json(new ApiResponse(boards));
 });
