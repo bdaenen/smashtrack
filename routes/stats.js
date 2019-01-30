@@ -46,6 +46,7 @@ router.get('/user/characters', async function(req, res) {
       })
       .groupBy('character.id')
       .orderBy(apiRequest.order, apiRequest.orderDir)
+      .orderBy('character.name')
       .page(apiRequest.page, apiRequest.pageSize)
     ;
 
