@@ -1,6 +1,5 @@
 let express = require('express');
 let router = express.Router();
-let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
 
 /**
@@ -19,11 +18,11 @@ router.get('/', function(req, res) {
 router.get('/user/characters', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
     let ApiRequest = require('../api/ApiRequest');
-    
+
     let apiRequest = new ApiRequest(req);
 
     let userId = parseInt(req.query.userId, 10);
-    
+
     if (!userId) {
         res.sendStatus(400);
         res.json({err: 400, message: 'A user ID is required'});
@@ -40,10 +39,12 @@ router.get('/user/characters', async function(req, res) {
         'character.name',
         raw('(COUNT(??) - 1) as ??', ['character.id', 'count'])
       ])
-      .leftJoin('player', 'player.character_id', '=', 'character.id')
+      .leftJoin('player', function(join) {
+          join
+            .on('player.character_id', '=', 'character.id')
+            .on('player.user_id', '=', userId)
+      })
       .groupBy('character.id')
-      .where('user_id', '=', userId)
-      .orWhereNull('user_id')
       .orderBy(apiRequest.order, apiRequest.orderDir)
       .page(apiRequest.page, apiRequest.pageSize)
     ;
