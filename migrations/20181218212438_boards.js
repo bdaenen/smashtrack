@@ -13,7 +13,7 @@ exports.up = async function(knex, Promise) {
         table.increments();
         table.integer('board_id').unsigned();
         table.integer('user_id').unsigned();
-        table.boolean('is_admin');
+        table.boolean('is_admin').notNullable();
 
         table.foreign('board_id').references('board.id').onUpdate('CASCADE').onDelete('RESTRICT');
         table.foreign('user_id').references('user.id').onUpdate('CASCADE').onDelete('RESTRICT');

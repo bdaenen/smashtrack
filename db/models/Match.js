@@ -85,8 +85,6 @@ class Match extends BaseModel {
         throw new Error('Not supported for this object. The full apiRequest is required.');
     }
 
-    // TODO: Player/Data mapping in respective models?
-    // TODO: Add option to post boards
     // TODO: Add validation?
     static apiRequestToGraph(apiRequest) {
         const Player = require('./Player');
