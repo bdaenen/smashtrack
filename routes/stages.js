@@ -2,19 +2,34 @@ let express = require('express');
 let router = express.Router();
 let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
+let ApiRequest = require('../api/ApiRequest');
+let ApiResponse = require('../api/ApiResponse');
+let SelectResponse = require('../api/SelectResponse');
+let Stage = require('../db/models/Stage');
+
 
 /**
  *
  */
-router.get('/', function(req, res) {
+router.get('/', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
-    let page = Math.abs(parseInt(req.query.page, 10) || 1);
-    let order = req.query.order || 'id';
-    let orderDirection = req.query.orderDirection || 'asc';
+    req = new ApiRequest(req);
 
-    res.json(dam.stages.order(order, orderDirection).page(pageSize, page));
+    let stages = await Stage.getList(req);
+    res.json(new ApiResponse(stages));
 });
+
+/**
+ *
+ */
+router.get('/select', async function(req, res) {
+    if (!permissions.checkReadPermission(req, res)){return}
+    req = new ApiRequest(req);
+
+    let stages = await Stage.getList(req);
+    res.json(new SelectResponse(stages));
+});
+
 
 /**
  *

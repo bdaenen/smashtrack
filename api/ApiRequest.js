@@ -6,14 +6,16 @@
      * @constructor
      */
     function ApiRequest(req) {
-        this.page = parseInt(req.query.page) || 0;
-        this.order = req.query.order || 'id';
-        this.orderDir = req.query.orderDir || 'asc';
-        this.pageSize = req.query.pageSize || 50;
+
+        this.page = (req.query && parseInt(req.query.page)) || 0;
+        this.order = (req.query && req.query.order) || 'id';
+        this.orderDir = (req.query && req.query.orderDir) || 'asc';
+        this.pageSize = (req.query && req.query.pageSize) || 50;
         this.user = req.user;
         this.req = req;
         this.params = req.params;
         this.data = req.body;
+        this.q = (req.query && req.query.q) || '';
     }
 
     /**

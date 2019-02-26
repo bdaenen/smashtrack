@@ -6,6 +6,10 @@ class Character extends BaseModel {
         return 'character';
     }
 
+    static get titleColumn() {
+        return 'name';
+    }
+
     // // This object defines the relations to other models.
     // static get relationMappings() {
     //     // Import models here to prevent require loops.

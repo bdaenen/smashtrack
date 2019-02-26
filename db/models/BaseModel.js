@@ -17,6 +17,18 @@ class BaseModel extends Model {
       return eagerRecord;
     }
 
+    static toSelect(record) {
+        let apiObj = {
+            id: record[this.idColumn],
+        };
+
+        if (this.titleColumn) {
+            apiObj.text = record[this.titleColumn];
+        }
+
+        return apiObj;
+    }
+
     static get eagerListFields() {
         return '';
     }
@@ -42,9 +54,11 @@ class BaseModel extends Model {
      * @returns {Promise<BaseModel[]>}
      */
     static async getList(apiRequest) {
-        return await apiRequest.applyRequestParamsToQuery(
-          this.query().eager(this.eagerListFields)
-        )
+        var query = this.query().eager(this.eagerListFields);
+        if (this.titleColumn && apiRequest.q) {
+            query.where(this.titleColumn, 'like', '%' + apiRequest.q + '%');
+        }
+        return await apiRequest.applyRequestParamsToQuery(query);
     }
 
     /**

@@ -6,6 +6,10 @@ class User extends Password(BaseModel) {
         return 'user';
     }
 
+    static get titleColumn() {
+        return 'tag';
+    }
+
     static get relationMappings() {
         const Match = require('./Match');
         const Board = require('./Board');

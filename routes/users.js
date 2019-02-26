@@ -6,18 +6,28 @@ let permissions = require('../lib/permissions');
 let User = require('../db/models/User');
 let ApiRequest = require('../api/ApiRequest');
 let ApiResponse = require('../api/ApiResponse');
+let SelectResponse = require('../api/SelectResponse');
 
 /**
  *
  */
-router.get('/', function(req, res) {
+router.get('/', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
-    let page = Math.abs(parseInt(req.query.page, 10) || 1);
-    let order = req.query.order || 'id';
-    let orderDirection = req.query.orderDirection || 'asc';
+    req = new ApiRequest(req);
 
-    res.json(dam.users.order(order, orderDirection).page(pageSize, page));
+    let users = await User.getList(req);
+    res.json(new ApiResponse(users));
+});
+
+/**
+ *
+ */
+router.get('/select', async function(req, res) {
+    if (!permissions.checkReadPermission(req, res)){return}
+    req = new ApiRequest(req);
+
+    let users = await User.getList(req);
+    res.json(new SelectResponse(users));
 });
 
 router.get('/me/boards', async function(req, res) {

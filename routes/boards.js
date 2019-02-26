@@ -6,6 +6,7 @@ let permissions = require('../lib/permissions');
 let Board = require('../db/models/Board');
 let ApiRequest = require('../api/ApiRequest');
 let ApiResponse = require('../api/ApiResponse');
+let SelectResponse = require('../api/SelectResponse');
 let ApiPostResponse = require('../api/ApiPostResponse');
 
 router.get('/', async function(req, res) {
@@ -16,6 +17,18 @@ router.get('/', async function(req, res) {
 
     res.json(new ApiResponse(boards));
 });
+
+/**
+ *
+ */
+router.get('/select', async function(req, res) {
+    if (!permissions.checkReadPermission(req, res)){return}
+    req = new ApiRequest(req);
+
+    let boards = await Board.getList(req);
+    res.json(new SelectResponse(boards));
+});
+
 
 router.post('/add', async function(req, res) {
     if (!permissions.checkWritePermission(req, res)){return}

@@ -2,6 +2,10 @@ let express = require('express');
 let router = express.Router();
 let dam = require('../db/dataAccessManager');
 let permissions = require('../lib/permissions');
+let ApiRequest = require('../api/ApiRequest');
+let ApiResponse = require('../api/ApiResponse');
+let SelectResponse = require('../api/SelectResponse');
+let Team = require('../db/models/Team');
 
 /**
  *
@@ -14,6 +18,17 @@ router.get('/', function(req, res) {
     let orderDirection = req.query.orderDirection || 'asc';
 
     res.json(dam.teams.order(order, orderDirection).page(pageSize, page));
+});
+
+/**
+ *
+ */
+router.get('/select', async function(req, res) {
+    if (!permissions.checkReadPermission(req, res)){return}
+    req = new ApiRequest(req);
+
+    let teams = await Team.getList(req);
+    res.json(new SelectResponse(teams));
 });
 
 /**

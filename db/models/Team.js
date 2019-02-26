@@ -6,6 +6,10 @@ class Team extends BaseModel {
         return 'team';
     }
 
+    static get titleColumn() {
+        return 'name';
+    }
+
     // This object defines the relations to other models.
     /* static get relationMappings() {
          // Import models here to prevent require loops.
