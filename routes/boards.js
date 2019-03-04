@@ -1,6 +1,7 @@
 let express = require('express');
 let router = express.Router();
 let permissions = require('../lib/permissions');
+let _ = require('lodash');
 
 // Router-specific
 let Board = require('../db/models/Board');
@@ -76,6 +77,59 @@ router.post('/add', async function(req, res) {
 
         if (newBoard) {
             res.json({success: true, data: new ApiPostResponse(await Board.getDetail(newBoard.id, req))});
+        }
+        else {
+            res.status(400);
+            res.json({success: false});
+        }
+    }
+    catch (err) {
+        res.status(400);
+        res.json({success: false, error: err.message});
+    }
+});
+
+router.post('/edit', async function(req, res) {
+    if (!permissions.checkWritePermission(req, res)){return}
+    req = new ApiRequest(req);
+
+    try {
+        // TODO: refactor to Board.upsertFromApi
+        let graph = {
+            id: req.data.id,
+            name: req.data.name,
+            users: []
+        };
+
+        if (req.data.stages && Array.isArray(req.data.stages)) {
+            graph.stages = [];
+            _.uniq(req.data.stages).forEach(function(stageId) {
+                if (parseInt(stageId)) {
+                    graph.stages.push({
+                        id: +stageId
+                    });
+                }
+            });
+        }
+
+        if (req.data.users && Array.isArray(req.data.users)) {
+            _.uniq(req.data.users).forEach(function(userId) {
+                if (parseInt(userId)) {
+                    graph.users.push({
+                        id: +userId
+                    });
+                }
+            });
+        }
+
+        const updatedBoard = await Board
+          .query()
+          .upsertGraph(graph, {
+              relate: true
+          });
+
+        if (updatedBoard) {
+            res.json({success: true, data: new ApiPostResponse(await Board.getDetail(updatedBoard.id, req))});
         }
         else {
             res.status(400);

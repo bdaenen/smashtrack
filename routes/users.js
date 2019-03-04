@@ -30,17 +30,22 @@ router.get('/select', async function(req, res) {
     res.json(new SelectResponse(users));
 });
 
-router.get('/me/boards', async function(req, res) {
+router.get('/me/boards/:output?', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
     req = new ApiRequest(req);
     let user = await User.query().where('id', '=', req.user.id).first();
     req.order = 'board.' + req.order;
 
     let boards = await req.applyRequestParamsToQuery(
-      user.$relatedQuery('boards')
+      user.$relatedQuery('boards').eager('[users, admins, stages]')
     );
 
-    res.json(new ApiResponse(boards));
+    if (!req.params.output) {
+        res.json(new ApiResponse(boards));
+    }
+    else if (req.params.output === 'select') {
+        res.json(new SelectResponse(boards));
+    }
 });
 
 /**

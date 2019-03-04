@@ -2,6 +2,11 @@ let express = require('express');
 let router = express.Router();
 let permissions = require('../lib/permissions');
 
+let ApiRequest = require('../api/ApiRequest');
+let RawApiResponse = require('../api/RawApiResponse');
+let Character = require('../db/models/Character');
+
+
 /**
  *
  */
@@ -17,7 +22,6 @@ router.get('/', function(req, res) {
  */
 router.get('/user/characters', async function(req, res) {
     if (!permissions.checkReadPermission(req, res)){return}
-    let ApiRequest = require('../api/ApiRequest');
 
     let apiRequest = new ApiRequest(req);
 
@@ -28,9 +32,6 @@ router.get('/user/characters', async function(req, res) {
         res.json({err: 400, message: 'A user ID is required'});
         return;
     }
-
-    let RawApiResponse = require('../api/RawApiResponse');
-    let Character = require('../db/models/Character');
 
     let {raw} = require('objection');
     let players = await Character.query()
