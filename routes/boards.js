@@ -61,7 +61,7 @@ router.post('/add', async function(req, res) {
 
         if (req.data.users && Array.isArray(req.data.users)) {
             req.data.users.forEach(function(userId) {
-                if (parseInt(userId)) {
+                if (parseInt(userId) && parseInt(userId) !== req.user.id) {
                     graph.users.push({
                         id: +userId
                     });
