@@ -42,19 +42,19 @@ let sessionStore = new MySQLStore({
 
 // Sessions
 app.use(session({
-    secret: "munK84xMJp6pe693kTJcbKqB",
+    secret: process.env.SESSION_SECRET,
     resave: false,
     store: sessionStore,
     name: 'smashtracker',
     saveUninitialized: false,
     cookie : {
         maxAge: 60*60*48*1000,
-        secure: parseInt(process.env.IS_HTTPS),
+        secure: process.env.PROTOCOL === 'https',
         httpOnly: true,
-        domain: process.env.DOMAIN
+        domain: process.env.DOMAIN,
+        sameSite: 'none',
     }
 }));
-//app.use(flash());
 
 // Init passport
 app.use(passport.initialize());
@@ -84,21 +84,19 @@ app.options("/*", function(req, res, next){
   res.sendStatus(200);
 });
 
-// Don't require a login on dev, otherwise always do + domain check.
-if (process.argv.indexOf('dev=1') === -1) {
-  app.use(async function(req, res, next) {
-    let permissions = require('./lib/permissions');
-    if (req.url === '/login' || (req.isAuthenticated() && await permissions.isUserValidForDomain(req.user, req.headers.origin))) {
-      next();
-    }
-    else {
-      if (req.isAuthenticated()) {
-        req.logout();
-      }
-      res.redirect('/login');
-    }
-  });
+
+app.use(async function(req, res, next) {
+let permissions = require('./lib/permissions');
+if (req.url === '/login' || (req.isAuthenticated() && await permissions.isUserValidForDomain(req.user, req.headers.origin))) {
+  next();
 }
+else {
+  if (req.isAuthenticated()) {
+    req.logout();
+  }
+  res.redirect('/login');
+}
+});
 
 // Passport authentication
 passport.use(new LocalStrategy({
