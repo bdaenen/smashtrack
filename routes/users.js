@@ -12,7 +12,9 @@ let SelectResponse = require('../api/SelectResponse');
  *
  */
 router.get('/', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     let users = await User.getList(req);
@@ -23,7 +25,9 @@ router.get('/', async function(req, res) {
  *
  */
 router.get('/select', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     let users = await User.getList(req);
@@ -31,19 +35,22 @@ router.get('/select', async function(req, res) {
 });
 
 router.get('/me/boards/:output?', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
-    let user = await User.query().where('id', '=', req.user.id).first();
+    let user = await User.query()
+        .where('id', '=', req.user.id)
+        .first();
     req.order = 'board.' + req.order;
 
     let boards = await req.applyRequestParamsToQuery(
-      user.$relatedQuery('boards').eager('[users, admins, stages]')
+        user.$relatedQuery('boards').eager('[users, admins, stages]')
     );
 
     if (!req.params.output) {
         res.json(new ApiResponse(boards));
-    }
-    else if (req.params.output === 'select') {
+    } else if (req.params.output === 'select') {
         res.json(new SelectResponse(boards));
     }
 });
@@ -52,22 +59,25 @@ router.get('/me/boards/:output?', async function(req, res) {
  *
  */
 router.get('/:id(\\d+)', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json(dam.users.filter({id: parseInt(req.params.id, 10)}).page(10, 1));
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json(dam.users.filter({ id: parseInt(req.params.id, 10) }).page(10, 1));
 });
 
 router.post('/change_password', async function(req, res) {
     if (!req.body || !req.body.password) {
         res.status(400);
-        return res.json({success: false, error: 'A password is required!'});
+        return res.json({ success: false, error: 'A password is required!' });
     }
     try {
-        let success = await dam.updateUser(req.user, {password: req.body.password});
-        res.json({success: success});
-    }
-    catch (error) {
+        let success = await dam.updateUser(req.user, {
+            password: req.body.password,
+        });
+        res.json({ success: success });
+    } catch (error) {
         res.status(400);
-        res.json({success: false, error: error.message});
+        res.json({ success: false, error: error.message });
     }
 });
 

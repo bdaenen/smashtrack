@@ -1,7 +1,6 @@
 const BaseModel = require('./BaseModel');
 
 class Match extends BaseModel {
-
     static get tableName() {
         return 'match';
     }
@@ -24,8 +23,8 @@ class Match extends BaseModel {
                 modelClass: User,
                 join: {
                     from: 'match.author_user_id',
-                    to: 'user.id'
-                }
+                    to: 'user.id',
+                },
             },
 
             stage: {
@@ -36,8 +35,8 @@ class Match extends BaseModel {
                 modelClass: Stage,
                 join: {
                     from: 'match.stage_id',
-                    to: 'stage.id'
-                }
+                    to: 'stage.id',
+                },
             },
 
             players: {
@@ -45,8 +44,8 @@ class Match extends BaseModel {
                 modelClass: Player,
                 join: {
                     from: 'match.id',
-                    to: 'player.match_id'
-                }
+                    to: 'player.match_id',
+                },
             },
 
             data: {
@@ -54,8 +53,8 @@ class Match extends BaseModel {
                 modelClass: MatchData,
                 join: {
                     from: 'match.id',
-                    to: 'match_data.match_id'
-                }
+                    to: 'match_data.match_id',
+                },
             },
 
             boards: {
@@ -65,11 +64,11 @@ class Match extends BaseModel {
                     from: 'match.id',
                     through: {
                         from: 'board_match.match_id',
-                        to: 'board_match.board_id'
+                        to: 'board_match.board_id',
                     },
-                    to: 'board.id'
-                }
-            }
+                    to: 'board.id',
+                },
+            },
         };
     }
 
@@ -82,7 +81,9 @@ class Match extends BaseModel {
     }
 
     static apiDataToGraph(apiData) {
-        throw new Error('Not supported for this object. The full apiRequest is required.');
+        throw new Error(
+            'Not supported for this object. The full apiRequest is required.'
+        );
     }
 
     // TODO: Add validation?
@@ -102,13 +103,13 @@ class Match extends BaseModel {
         };
 
         if (apiData.match.data) {
-            graph.data = MatchData.apiDataToGraph((apiData.match.data));
+            graph.data = MatchData.apiDataToGraph(apiData.match.data);
         }
 
         if (apiData.match.board_ids) {
             graph.boards = [];
             for (let i = 0; i < apiData.match.board_ids.length; i++) {
-                graph.boards.push({id: apiData.match.board_ids[i]});
+                graph.boards.push({ id: apiData.match.board_ids[i] });
             }
         }
 
@@ -135,7 +136,7 @@ class Match extends BaseModel {
             date: match.date,
             stocks: match.stocks,
             time: match.match_time,
-            time_remaining: match.match_time_remaining
+            time_remaining: match.match_time_remaining,
         };
 
         if (match.stage) {
@@ -145,7 +146,7 @@ class Match extends BaseModel {
             result.match.author_user = User.toApi(match.author);
         }
         if (match.data) {
-          result.match.data = MatchData.toApi(match.data);
+            result.match.data = MatchData.toApi(match.data);
         }
 
         if (match.boards && match.boards.length) {

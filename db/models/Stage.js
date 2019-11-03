@@ -1,7 +1,6 @@
 const BaseModel = require('./BaseModel');
 
 class Stage extends BaseModel {
-
     static get tableName() {
         return 'stage';
     }
@@ -13,7 +12,7 @@ class Stage extends BaseModel {
     static toApi(stage) {
         let apiObj = {
             id: stage.id,
-            name: stage.name
+            name: stage.name,
         };
 
         return apiObj;

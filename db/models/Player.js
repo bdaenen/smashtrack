@@ -1,7 +1,6 @@
 const BaseModel = require('./BaseModel');
 
 class Player extends BaseModel {
-
     static get tableName() {
         return 'player';
     }
@@ -24,8 +23,8 @@ class Player extends BaseModel {
                 modelClass: Match,
                 join: {
                     from: 'player.match_id',
-                    to: 'match.id'
-                }
+                    to: 'match.id',
+                },
             },
 
             user: {
@@ -36,8 +35,8 @@ class Player extends BaseModel {
                 modelClass: User,
                 join: {
                     from: 'player.user_id',
-                    to: 'user.id'
-                }
+                    to: 'user.id',
+                },
             },
 
             character: {
@@ -45,8 +44,8 @@ class Player extends BaseModel {
                 modelClass: Character,
                 join: {
                     from: 'player.character_id',
-                    to: 'character.id'
-                }
+                    to: 'character.id',
+                },
             },
 
             team: {
@@ -54,17 +53,17 @@ class Player extends BaseModel {
                 modelClass: Team,
                 join: {
                     from: 'player.team_id',
-                    to: 'team.id'
-                }
+                    to: 'team.id',
+                },
             },
             data: {
                 relation: BaseModel.HasManyRelation,
                 modelClass: PlayerData,
                 join: {
                     from: 'player.id',
-                    to: 'player_data.player_id'
-                }
-            }
+                    to: 'player_data.player_id',
+                },
+            },
         };
     }
 
@@ -75,7 +74,7 @@ class Player extends BaseModel {
             user_id: parseInt(apiData.user_id, 10),
             character_id: parseInt(apiData.character_id, 10),
             is_winner: apiData.is_winner,
-            team_id: null
+            team_id: null,
         };
 
         if (apiData.team_id) {
@@ -97,7 +96,7 @@ class Player extends BaseModel {
 
         let apiObj = {
             id: player.id,
-            is_winner: player.is_winner
+            is_winner: player.is_winner,
         };
 
         if (player.data) {

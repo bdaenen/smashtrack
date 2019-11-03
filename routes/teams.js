@@ -11,7 +11,9 @@ let Team = require('../db/models/Team');
  *
  */
 router.get('/', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     let pageSize = Math.abs(parseInt(req.query.pageSize) || 50);
     let page = Math.abs(parseInt(req.query.page, 10) || 1);
     let order = req.query.order || 'id';
@@ -24,7 +26,9 @@ router.get('/', function(req, res) {
  *
  */
 router.get('/select', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     let teams = await Team.getList(req);
@@ -35,24 +39,30 @@ router.get('/select', async function(req, res) {
  *
  */
 router.get('/:id(\\d+)', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json(dam.teams.filter({id: parseInt(req.params.id, 10)}));
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json(dam.teams.filter({ id: parseInt(req.params.id, 10) }));
 });
 
 /**
  *
  */
 router.post('/add', function(req, res) {
-    if (!permissions.checkWritePermission(req, res)){return}
-    res.json({error: 'not yet implemented'});
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
+    res.json({ error: 'not yet implemented' });
 });
 
 /**
  *
  */
 router.get('/add', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json({error: 'not yet implemented'});
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json({ error: 'not yet implemented' });
 });
 
 /**

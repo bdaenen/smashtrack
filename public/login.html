@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport"
+				content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<style>
+		body {
+				font-family: sans-serif;
+		}
+		.info, .success, .warning, .error {
+    		margin: 10px 0;
+    		padding:12px;
+		}
+		.info {
+				color: #00529B;
+				background-color: #BDE5F8;
+		}
+		.success {
+				color: #4F8A10;
+				background-color: #DFF2BF;
+		}
+		.warning {
+				color: #9F6000;
+				background-color: #FEEFB3;
+		}
+		.error {
+				color: #D8000C;
+				background-color: #FFD2D2;
+		}
+	</style>
+	<title>Smashtrack login</title>
+</head>
+<body>
+	<div class="message">
+
+	</div>
+	<form action="/login" method="post">
+		<label>Tag
+			<input type="text" name="tag"/>
+		</label>
+		<label>Password
+			<input type="password" name="password"/>
+		</label>
+		<button type="submit">Log in</button>
+	</form>
+	<script type="text/javascript">
+		const form = document.querySelector("form");
+		form.addEventListener("submit", (e) => {
+			e.preventDefault();
+
+			fetch(form.action, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json; charset=utf-8",
+					},
+					body: JSON.stringify({
+							tag: e.target.tag.value,
+							password: e.target.password.value
+					})
+				})
+				.then((res) => res.json())
+				.then((data) => {
+				    if (data.authenticated) {
+								window.location.reload();
+						}
+				    else {
+				        document.querySelector('.message').innerHTML = '<div class="error">Authentication failed</div>';
+						}
+				});
+		});
+	</script>
+</body>
+</html>

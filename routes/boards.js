@@ -11,7 +11,9 @@ let SelectResponse = require('../api/SelectResponse');
 let ApiPostResponse = require('../api/ApiPostResponse');
 
 router.get('/', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
 
     req = new ApiRequest(req);
     let boards = await Board.getList(req);
@@ -23,16 +25,19 @@ router.get('/', async function(req, res) {
  *
  */
 router.get('/select', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     let boards = await Board.getList(req);
     res.json(new SelectResponse(boards));
 });
 
-
 router.post('/add', async function(req, res) {
-    if (!permissions.checkWritePermission(req, res)){return}
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
     let uuid = require('../lib/uuid');
 
@@ -41,11 +46,13 @@ router.post('/add', async function(req, res) {
         let graph = {
             name: req.data.name,
             uuid: uuid('board'),
-            admins: [{
-                '#dbRef': req.user.id,
-                is_admin: 1
-            }],
-            users: []
+            admins: [
+                {
+                    '#dbRef': req.user.id,
+                    is_admin: 1,
+                },
+            ],
+            users: [],
         };
 
         if (req.data.stages && Array.isArray(req.data.stages)) {
@@ -53,7 +60,7 @@ router.post('/add', async function(req, res) {
             req.data.stages.forEach(function(stageId) {
                 if (parseInt(stageId)) {
                     graph.stages.push({
-                        id: +stageId
+                        id: +stageId,
                     });
                 }
             });
@@ -63,34 +70,37 @@ router.post('/add', async function(req, res) {
             req.data.users.forEach(function(userId) {
                 if (parseInt(userId) && parseInt(userId) !== req.user.id) {
                     graph.users.push({
-                        id: +userId
+                        id: +userId,
                     });
                 }
             });
         }
 
-        const newBoard = await Board
-          .query()
-          .upsertGraph(graph, {
-              relate: true
-          });
+        const newBoard = await Board.query().upsertGraph(graph, {
+            relate: true,
+        });
 
         if (newBoard) {
-            res.json({success: true, data: new ApiPostResponse(await Board.getDetail(newBoard.id, req))});
-        }
-        else {
+            res.json({
+                success: true,
+                data: new ApiPostResponse(
+                    await Board.getDetail(newBoard.id, req)
+                ),
+            });
+        } else {
             res.status(400);
-            res.json({success: false});
+            res.json({ success: false });
         }
-    }
-    catch (err) {
+    } catch (err) {
         res.status(400);
-        res.json({success: false, error: err.message});
+        res.json({ success: false, error: err.message });
     }
 });
 
 router.post('/edit', async function(req, res) {
-    if (!permissions.checkWritePermission(req, res)){return}
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     try {
@@ -98,7 +108,7 @@ router.post('/edit', async function(req, res) {
         let graph = {
             id: req.data.id,
             name: req.data.name,
-            users: []
+            users: [],
         };
 
         if (req.data.stages && Array.isArray(req.data.stages)) {
@@ -106,7 +116,7 @@ router.post('/edit', async function(req, res) {
             _.uniq(req.data.stages).forEach(function(stageId) {
                 if (parseInt(stageId)) {
                     graph.stages.push({
-                        id: +stageId
+                        id: +stageId,
                     });
                 }
             });
@@ -116,34 +126,37 @@ router.post('/edit', async function(req, res) {
             _.uniq(req.data.users).forEach(function(userId) {
                 if (parseInt(userId)) {
                     graph.users.push({
-                        id: +userId
+                        id: +userId,
                     });
                 }
             });
         }
 
-        const updatedBoard = await Board
-          .query()
-          .upsertGraph(graph, {
-              relate: true
-          });
+        const updatedBoard = await Board.query().upsertGraph(graph, {
+            relate: true,
+        });
 
         if (updatedBoard) {
-            res.json({success: true, data: new ApiPostResponse(await Board.getDetail(updatedBoard.id, req))});
-        }
-        else {
+            res.json({
+                success: true,
+                data: new ApiPostResponse(
+                    await Board.getDetail(updatedBoard.id, req)
+                ),
+            });
+        } else {
             res.status(400);
-            res.json({success: false});
+            res.json({ success: false });
         }
-    }
-    catch (err) {
+    } catch (err) {
         res.status(400);
-        res.json({success: false, error: err.message});
+        res.json({ success: false, error: err.message });
     }
 });
 
 router.get('/:id(\\d+)', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
     let board = await Board.getDetail(req.params.id, req);
 
@@ -151,9 +164,10 @@ router.get('/:id(\\d+)', async function(req, res) {
 });
 
 router.get('/add', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json({structure: require('../db/structure/addMatch')});
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json({ structure: require('../db/structure/addMatch') });
 });
-
 
 module.exports = router;

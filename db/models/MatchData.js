@@ -1,7 +1,6 @@
 const BaseModel = require('./BaseModel');
 
 class MatchData extends BaseModel {
-
     static get tableName() {
         return 'match_data';
     }
@@ -13,7 +12,7 @@ class MatchData extends BaseModel {
             let key = keys[i];
             data.push({
                 key: key,
-                value: apiData[key]
+                value: apiData[key],
             });
         }
 
@@ -22,7 +21,9 @@ class MatchData extends BaseModel {
 
     static toApi(matchDataRecords) {
         if (!matchDataRecords instanceof Array) {
-            throw Error('MatchData should always be an array when mapping to the API.');
+            throw Error(
+                'MatchData should always be an array when mapping to the API.'
+            );
         }
 
         let result = {};

@@ -24,24 +24,24 @@ class Board extends BaseModel {
                     from: 'board.id',
                     through: {
                         from: 'board_user.board_id',
-                        to: 'board_user.user_id'
+                        to: 'board_user.user_id',
                     },
-                    to: 'user.id'
-                }
+                    to: 'user.id',
+                },
             },
             admins: {
                 relation: BaseModel.ManyToManyRelation,
                 modelClass: User,
-                filter: {'board_user.is_admin': true},
+                filter: { 'board_user.is_admin': true },
                 join: {
                     from: 'board.id',
                     through: {
                         from: 'board_user.board_id',
                         to: 'board_user.user_id',
-                        extra: ['is_admin']
+                        extra: ['is_admin'],
                     },
-                    to: 'user.id'
-                }
+                    to: 'user.id',
+                },
             },
             matches: {
                 relation: BaseModel.ManyToManyRelation,
@@ -50,10 +50,10 @@ class Board extends BaseModel {
                     from: 'board.id',
                     through: {
                         from: 'board_match.board_id',
-                        to: 'board_match.match_id'
+                        to: 'board_match.match_id',
                     },
-                    to: 'match.id'
-                }
+                    to: 'match.id',
+                },
             },
             stages: {
                 relation: BaseModel.ManyToManyRelation,
@@ -62,10 +62,10 @@ class Board extends BaseModel {
                     from: 'board.id',
                     through: {
                         from: 'board_stage.board_id',
-                        to: 'board_stage.stage_id'
+                        to: 'board_stage.stage_id',
                     },
-                    to: 'stage.id'
-                }
+                    to: 'stage.id',
+                },
             },
         };
     }
