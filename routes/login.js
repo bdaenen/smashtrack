@@ -30,7 +30,7 @@ router.get('/', async function(req, res, next) {
         default:
             res.json({
                 authenticated: req.isAuthenticated(),
-                user: User.toApi(user),
+                user: user ? User.toApi(user) : null,
                 structure: {
                     tag: 'string',
                     password: 'string',
