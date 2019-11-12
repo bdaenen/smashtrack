@@ -9,7 +9,9 @@
         this.data = [];
 
         for (let i = 0; i < data.results.length; i++) {
-            this.data.push(data.results[i].constructor.toSelect(data.results[i]));
+            this.data.push(
+                data.results[i].constructor.toSelect(data.results[i])
+            );
         }
 
         this.count = this.data.length || 0;
@@ -23,9 +25,9 @@
         return {
             results: this.data,
             count: this.count,
-            total: this.total
-        }
+            total: this.total,
+        };
     };
 
     module.exports = SelectResponse;
-}());
+})();

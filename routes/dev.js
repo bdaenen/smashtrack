@@ -7,18 +7,21 @@ let permissions = require('../lib/permissions');
  *
  */
 router.get('/', async function(req, res) {
-  let User = require('../db/models/User');
+    let User = require('../db/models/User');
 
-  let bda = await User.query().where('tag', '=', 'BENNO');
-  res.json(bda);
+    let bda = await User.query().where('tag', '=', 'BENNO');
+    res.json(bda);
 });
 
 router.get('/match', async function(req, res) {
-  let Match = require('../db/models/Match');
+    let Match = require('../db/models/Match');
 
-  let match = await Match.query().first().where('id', '=', '140').eager('[stage, author, players.[data, character, user, team], data]');
+    let match = await Match.query()
+        .first()
+        .where('id', '=', '140')
+        .eager('[stage, author, players.[data, character, user, team], data]');
 
-  res.json(Match.toApi(match));
+    res.json(Match.toApi(match));
 });
 
 /**
@@ -34,6 +37,5 @@ router.get('/match', async function(req, res) {
 //
 //   res.json(User.toApi(dme));
 // });
-
 
 module.exports = router;

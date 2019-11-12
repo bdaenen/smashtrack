@@ -1,7 +1,6 @@
 const BaseModel = require('./BaseModel');
 
 class Character extends BaseModel {
-
     static get tableName() {
         return 'character';
     }

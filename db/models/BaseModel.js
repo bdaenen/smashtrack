@@ -1,4 +1,4 @@
-const { Model, transaction/*, snakeCaseMappers*/ } = require('objection');
+const { Model, transaction /*, snakeCaseMappers*/ } = require('objection');
 
 class BaseModel extends Model {
     static get idColumn() {
@@ -14,7 +14,7 @@ class BaseModel extends Model {
     }
 
     static toApi(eagerRecord) {
-      return eagerRecord;
+        return eagerRecord;
     }
 
     static toSelect(record) {
@@ -38,10 +38,10 @@ class BaseModel extends Model {
     }
 
     static async upsertFromApi(apiRequest) {
-        return await transaction(this.knex(), async (trx) => {
+        return await transaction(this.knex(), async trx => {
             let graph = this.apiRequestToGraph(apiRequest);
-            return await this.query(trx).upsertGraph(graph, {relate: true});
-        })
+            return await this.query(trx).upsertGraph(graph, { relate: true });
+        });
     }
 
     static apiRequestToGraph(apiRequest) {
@@ -69,9 +69,15 @@ class BaseModel extends Model {
      */
     static async getDetail(id, apiRequest) {
         if (apiRequest) {
-            return await apiRequest.applyRequestParamsToQuery(this.query().eager(this.eagerDetailFields).where(this.idColumn, id));
+            return await apiRequest.applyRequestParamsToQuery(
+                this.query()
+                    .eager(this.eagerDetailFields)
+                    .where(this.idColumn, id)
+            );
         }
-        return await this.query().eager(this.eagerDetailFields).where(this.idColumn, id);
+        return await this.query()
+            .eager(this.eagerDetailFields)
+            .where(this.idColumn, id);
     }
 }
 

@@ -23,9 +23,9 @@
         return {
             data: this.data,
             count: this.count,
-            total: this.total
-        }
+            total: this.total,
+        };
     };
 
     module.exports = ApiResponse;
-}());
+})();

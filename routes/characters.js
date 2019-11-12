@@ -11,7 +11,9 @@ let Character = require('../db/models/Character');
  *
  */
 router.get('/', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
 
     req = new ApiRequest(req);
 
@@ -23,36 +25,43 @@ router.get('/', async function(req, res) {
  *
  */
 router.get('/select', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     let characters = await Character.getList(req);
     res.json(new SelectResponse(characters));
 });
 
-
 /**
  *
  */
 router.get('/:id(\\d+)', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json(dam.characters.filter({id: parseInt(req.params.id, 10)}));
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json(dam.characters.filter({ id: parseInt(req.params.id, 10) }));
 });
 
 /**
  *
  */
 router.post('/add', function(req, res) {
-    if (!permissions.checkWritePermission(req, res)){return}
-    res.json({error: 'not yet implemented'});
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
+    res.json({ error: 'not yet implemented' });
 });
 
 /**
  *
  */
 router.get('/add', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json({error: 'not yet implemented'});
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json({ error: 'not yet implemented' });
 });
 
 /**

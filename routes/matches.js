@@ -8,7 +8,9 @@ let ApiPostResponse = require('../api/ApiPostResponse');
 let Match = require('../db/models/Match');
 
 router.get('/', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
 
     req = new ApiRequest(req);
 
@@ -17,26 +19,31 @@ router.get('/', async function(req, res) {
 });
 
 router.post('/data/add', async function(req, res) {
-    if (!permissions.checkWritePermission(req, res)){return}
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
     let data = req.body;
 
     try {
         let success = await dam.addMatchData(data);
-        res.json({success: success});
-    }
-    catch(err) {
+        res.json({ success: success });
+    } catch (err) {
         res.status(400);
-        res.json({success: false, error: err.message});
+        res.json({ success: false, error: err.message });
     }
 });
 
 router.get('/data/add', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json({structure: require('../db/structure/addMatchData')});
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json({ structure: require('../db/structure/addMatchData') });
 });
 
 router.post('/', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     let data = req.body;
 
     let filters = data.filters;
@@ -45,14 +52,17 @@ router.post('/', function(req, res) {
 
     if (!filters) {
         res.status(400);
-        res.json({success: false, errors: {msg: 'Missing data', param: 'filters'}})
+        res.json({
+            success: false,
+            errors: { msg: 'Missing data', param: 'filters' },
+        });
     }
 
     /**
      * @type DbSet
      */
     let matches = dam.matches;
-    filters.forEach(function(filter){
+    filters.forEach(function(filter) {
         matches = matches.filter(filter, filter.comparison);
     });
 
@@ -63,16 +73,19 @@ router.post('/', function(req, res) {
  *
  */
 router.get('/:id(\\d+)', async function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     res.json(
-      new ApiResponse(
-          await req.applyRequestParamsToQuery(
-            Match.query().eager(Match.eagerDetailFields)
-              .where('match.id', req.params.id)
-          )
-      )
+        new ApiResponse(
+            await req.applyRequestParamsToQuery(
+                Match.query()
+                    .eager(Match.eagerDetailFields)
+                    .where('match.id', req.params.id)
+            )
+        )
     );
 });
 
@@ -80,22 +93,52 @@ router.get('/:id(\\d+)', async function(req, res) {
  *
  */
 router.post('/add', async function(req, res) {
-    if (!permissions.checkWritePermission(req, res)){return}
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
     req = new ApiRequest(req);
 
     try {
         let newMatch = await Match.upsertFromApi(req);
 
         if (newMatch) {
-            res.json({success: true, data: new ApiPostResponse(await Match.getDetail(newMatch.id, req))});
-        }
-        else {
+            res.json({
+                success: true,
+                data: new ApiPostResponse(
+                    await Match.getDetail(newMatch.id, req)
+                ),
+            });
+        } else {
             throw new Error('Something went wrong while inserting a match.');
         }
-    }
-    catch (error) {
+    } catch (error) {
         res.status(400);
-        res.json({success: false, error: error.message});
+        res.json({ success: false, error: error.message });
+    }
+});
+
+router.post('/edit', async function(req, res) {
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
+    req = new ApiRequest(req);
+
+    try {
+        let updatedMatch = await Match.upsertFromApi(req);
+
+        if (updatedMatch) {
+            res.json({
+                success: true,
+                data: new ApiPostResponse(
+                    await Match.getDetail(updatedMatch.id, req)
+                ),
+            });
+        } else {
+            throw new Error('Something went wrong while updating the match.');
+        }
+    } catch (error) {
+        res.status(400);
+        res.json({ success: false, error: error.message });
     }
 });
 
@@ -103,9 +146,10 @@ router.post('/add', async function(req, res) {
  *
  */
 router.get('/add', function(req, res) {
-    if (!permissions.checkReadPermission(req, res)){return}
-    res.json({structure: require('../db/structure/addMatch')});
+    if (!permissions.checkReadPermission(req, res)) {
+        return;
+    }
+    res.json({ structure: require('../db/structure/addMatch') });
 });
-
 
 module.exports = router;

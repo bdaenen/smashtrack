@@ -22,10 +22,10 @@ class User extends Password(BaseModel) {
                     from: 'user.id',
                     through: {
                         from: 'player.user_id',
-                        to: 'player.match_id'
+                        to: 'player.match_id',
                     },
-                    to: 'match.id'
-                }
+                    to: 'match.id',
+                },
             },
             boards: {
                 relation: BaseModel.ManyToManyRelation,
@@ -34,18 +34,20 @@ class User extends Password(BaseModel) {
                     from: 'user.id',
                     through: {
                         from: 'board_user.user_id',
-                        to: 'board_user.board_id'
+                        to: 'board_user.board_id',
                     },
-                    to: 'board.id'
-                }
-            }
+                    to: 'board.id',
+                },
+            },
         };
     }
 
     static toApi(user) {
         let apiObj = {
             id: user.id,
-            tag: user.tag
+            tag: user.tag,
+            is_admin: user.is_admin,
+            is_api_user: user.is_api_user
         };
 
         if (user.matches) {
@@ -55,6 +57,20 @@ class User extends Password(BaseModel) {
                 apiObj.matches.push(Match.toApi(user.matches[i]));
             }
         }
+
+        return apiObj;
+    }
+
+    static toSelect(record) {
+        let apiObj = {
+            id: record[this.idColumn],
+        };
+
+        if (this.titleColumn) {
+            apiObj.text = record[this.titleColumn];
+        }
+
+        apiObj.is_api_user = record.is_api_user;
 
         return apiObj;
     }
