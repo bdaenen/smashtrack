@@ -179,21 +179,23 @@ let dataAccessManager = Object.create({
      * @param data
      */
     createUser: function(data) {
-        // TODO: move validation to model
-        validateUserData(data, async function(err, success) {
-            if (err.length || !success) {
-                throw err;
-            }
+        return new Promise((resolve, reject) => {
+            // TODO: move validation to model
+            validateUserData(data, async function(err, success) {
+                if (err.length || !success) {
+                    throw err;
+                }
 
-            let User = require('./models/User');
-            let user = await User.query().insert({
-                tag: data.tag,
-                password: data.password,
+                let User = require('./models/User');
+                let user = await User.query().insert({
+                    tag: data.tag,
+                    password: data.password,
+                });
+
+                changedDatasets.add('users');
+
+                resolve(user);
             });
-
-            changedDatasets.add('users');
-
-            return user;
         });
     },
 

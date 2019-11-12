@@ -187,7 +187,7 @@ app.post('/login', function(req, res, next) {
                     }
                     return res.json({
                         authenticated: !!user,
-                        user: { id: user.id, tag: user.tag } || {},
+                        user: require('./db/models/User').toApi(user) || {},
                     });
                 });
             } else {

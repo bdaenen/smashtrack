@@ -2,15 +2,16 @@ let express = require('express');
 let router = express.Router();
 let path = require('path');
 let passport = require('passport');
+let User = require('../db/models/User');
 
-router.get('/', function(req, res, next) {
+router.get('/', async function(req, res, next) {
     let user = null;
     if (req.user) {
-        user = {
-            tag: req.user.tag,
-            id: req.user.id,
-        };
+        user = await User.query()
+          .first()
+          .where('id', '=', req.user.id);
     }
+
     console.log(req.isAuthenticated());
     switch (req.accepts(['*/*', 'html', 'json'])) {
         case 'html':
@@ -29,7 +30,7 @@ router.get('/', function(req, res, next) {
         default:
             res.json({
                 authenticated: req.isAuthenticated(),
-                user: user,
+                user: User.toApi(user),
                 structure: {
                     tag: 'string',
                     password: 'string',

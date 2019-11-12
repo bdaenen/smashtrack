@@ -46,6 +46,8 @@ class User extends Password(BaseModel) {
         let apiObj = {
             id: user.id,
             tag: user.tag,
+            is_admin: user.is_admin,
+            is_api_user: user.is_api_user
         };
 
         if (user.matches) {
@@ -55,6 +57,20 @@ class User extends Password(BaseModel) {
                 apiObj.matches.push(Match.toApi(user.matches[i]));
             }
         }
+
+        return apiObj;
+    }
+
+    static toSelect(record) {
+        let apiObj = {
+            id: record[this.idColumn],
+        };
+
+        if (this.titleColumn) {
+            apiObj.text = record[this.titleColumn];
+        }
+
+        apiObj.is_api_user = record.is_api_user;
 
         return apiObj;
     }

@@ -117,6 +117,31 @@ router.post('/add', async function(req, res) {
     }
 });
 
+router.post('/edit', async function(req, res) {
+    if (!permissions.checkWritePermission(req, res)) {
+        return;
+    }
+    req = new ApiRequest(req);
+
+    try {
+        let updatedMatch = await Match.upsertFromApi(req);
+
+        if (updatedMatch) {
+            res.json({
+                success: true,
+                data: new ApiPostResponse(
+                    await Match.getDetail(updatedMatch.id, req)
+                ),
+            });
+        } else {
+            throw new Error('Something went wrong while updating the match.');
+        }
+    } catch (error) {
+        res.status(400);
+        res.json({ success: false, error: error.message });
+    }
+});
+
 /**
  *
  */
