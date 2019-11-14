@@ -136,7 +136,7 @@ passport.use(
             let user = await User.query()
                 .first()
                 .where('tag', '=', username);
-            if (await user.verifyPassword(password)) {
+            if (user && await user.verifyPassword(password)) {
                 return done(null, user);
             } else {
                 done(null);

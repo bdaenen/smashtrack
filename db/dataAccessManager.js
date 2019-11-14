@@ -187,10 +187,20 @@ let dataAccessManager = Object.create({
                 }
 
                 let User = require('./models/User');
-                let user = await User.query().insert({
+                let userData = {
                     tag: data.tag,
-                    password: data.password,
-                });
+                    password: data.password
+                };
+
+                if (data.is_api_user) {
+                    userData.is_api_user = data.is_api_user;
+                }
+
+                if (data.is_admin_user) {
+                    userData.is_admin_user = data.is_admin_user;
+                }
+
+                let user = await User.query().insert(userData);
 
                 changedDatasets.add('users');
 
